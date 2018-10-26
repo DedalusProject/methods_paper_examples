@@ -7,7 +7,7 @@ Brief statement of problem and why it's included.
 
 ### Resolution ###
 
-Give resolution
+Give resolution and expected runtime
 
 ## To Run ##
 
