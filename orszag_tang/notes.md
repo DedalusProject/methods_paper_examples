@@ -9,8 +9,10 @@ Typically the problem is run with shock-capturing methods. Instead, here we regu
 
 ### Resolution ###
 
-`nx = 4096`
-`ny = 4096`
+```
+nx = 4096
+ny = 4096
+```
 
 This script was run for 13 hours on 1024 ivy-bridge cores on the Pleiades supercomputer.
 

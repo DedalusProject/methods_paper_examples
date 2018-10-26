@@ -7,9 +7,11 @@ Brief statement of problem and why it's included.
 
 ### Resolution ###
 
-`nx = `
-`ny = `
-`nz = `
+```
+nx = 
+ny =
+nz =
+```
 
 This test runs on <<N>> cores and should run in approximately <<Y>> hours on <<Z>> machine.
 
