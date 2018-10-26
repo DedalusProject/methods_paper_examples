@@ -7,11 +7,13 @@ Brief statement of problem and why it's included.
 
 ### Resolution ###
 
-Give resolution
+`nx = `
+`ny = `
+`nz = `
+
+This test runs on <<N>> cores and should run in approximately <<Y>> hours on <<Z>> machine.
 
 ## To Run ##
-
-This test runs on <<N>> cores and should run in approximately 
 
 1. on a system of sufficent size, run 
 
