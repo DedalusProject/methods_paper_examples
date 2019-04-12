@@ -33,7 +33,7 @@ Lx = 10
 
 # Temporal discretization
 dt = 1e-2
-stop_sim_time = 20
+stop_sim_time = 5
 timestepper = de.timesteppers.SBDF2
 save_iter = 10
 
@@ -66,8 +66,10 @@ domain  = de.Domain([x_basis], np.complex128)
 str_edge = lambda ne: f"{edges[ne][0]}_{edges[ne][1]}"
 str_u = lambda ne: f"u_{str_edge(ne)}"
 str_ux = lambda ne: f"ux_{str_edge(ne)}"
-variables = [str_u(ne) for ne in range(N_edge)] + [str_ux(ne) for ne in range(N_edge)]
+v_edges = [(str_u(ne), str_ux(ne)) for ne in range(N_edge)]
+variables = [v for v_edge in v_edges for v in v_edge]
 problem = de.IVP(domain, variables=variables)
+problem.meta[:]['x']['dirichlet'] = True
 problem.substitutions["abs_sq(u)"] = "u * conj(u)"
 # Interior equations: NLS and first-order reduction for each edge
 for ne in range(N_edge):
@@ -103,16 +105,15 @@ solver.stop_iteration = np.inf
 
 # Initial conditions
 def soliton(b,c,k):
-    return k*np.exp(i*c*k*(x-b))/np.cosh(k*(x-b))
+    return k*np.exp(1j*c*k*(x-b))/np.cosh(k*(x-b))
 
-variables = problem.variables
 x, scale = domain.grid(0), 1
 X=X_list=[]
 for var in range(len(variables)):
     X  =  X+[solver.state[variables[var]]]
-    if variables[var]=="u06":
+    if variables[var]=="u_0_6":
         X[var]['g'] = 1*soliton(Lx/2,3,2)
-    if variables[var]=="v06":
+    if variables[var]=="ux_0_6":
         X[var-1].differentiate(0, out=X[var])
     X[var].set_scales(scale, keep_data=True)
     X_list = X_list+[ [np.abs(np.copy(X[var]['g']))**2] ]
@@ -161,7 +162,7 @@ def edge_plot(ulist,tlist,title,fname):
     plt.savefig(fname)
 
 for e in range(len(edges)):
-    edge_plot(X_list[2*e],t_list,"edge "+s(e),"./fano_plane/edge_"+s(e)+".png")
+    edge_plot(X_list[2*e],t_list,"edge "+str_edge(e),"./fano_plane/edge_"+str_edge(e)+".png")
 
 # Save output
 filename = "edges.dat"
