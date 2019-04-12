@@ -35,7 +35,10 @@ Lx = 10
 dt = 1e-2
 stop_sim_time = 5
 timestepper = de.timesteppers.SBDF2
+
+# Output
 save_iter = 10
+filename = "nls_data.dat"
 
 # Graph structure defined as list of directed edges
 edges = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0]]
@@ -104,23 +107,25 @@ solver.stop_sim_time  = stop_sim_time
 solver.stop_iteration = np.inf
 
 # Initial conditions
-def soliton(b,c,k):
-    return k*np.exp(1j*c*k*(x-b))/np.cosh(k*(x-b))
+def soliton(x, x0, c, k):
+    return k * np.exp(1j*c*k*(x-x0)) / np.cosh(k*(x-x0))
+x = domain.grid(0)
+u0 = solver.state.fields[0]
+ux0 = solver.state.fields[1]
+u0['g'] = soliton(x, Lx/2, 3, 2)
+u0.differentiate('x', out=ux0)
 
-x, scale = domain.grid(0), 1
-X=X_list=[]
-for var in range(len(variables)):
-    X  =  X+[solver.state[variables[var]]]
-    if variables[var]=="u_0_6":
-        X[var]['g'] = 1*soliton(Lx/2,3,2)
-    if variables[var]=="ux_0_6":
-        X[var-1].differentiate(0, out=X[var])
-    X[var].set_scales(scale, keep_data=True)
-    X_list = X_list+[ [np.abs(np.copy(X[var]['g']))**2] ]
+# Outputs
+t_list = []
+state_lists = [[] for f in solver.state.fields[::2]]
+def save_state(scales=1):
+    t_list.append(solver.sim_time)
+    for n, f in enumerate(solver.state.fields[::2]):
+        f.set_scales(scales)
+        state_lists[n].append(np.copy(f['g']))
 
 # Main loop
-t_list = [solver.sim_time]
-# Main loop
+save_state()
 try:
     logger.info('Starting loop')
     start_time = time.time()
@@ -128,11 +133,8 @@ try:
         solver.step(dt)
         if (solver.iteration - 1) % 10 == 0:
             logger.info('Iteration: %i, Time: %e, dt: %e' %(solver.iteration, solver.sim_time, dt))
-        if (solver.iteration - 1) % save_iter == 0:
-            for var in range(len(variables)):
-                X[var].set_scales(scale, keep_data=True)
-                X_list[var].append(np.abs(np.copy(X[var]['g']))**2)
-            t_list.append(solver.sim_time)
+        if solver.iteration % save_iter == 0:
+            save_state()
 except:
     logger.error('Exception raised, triggering end of main loop.')
     raise
@@ -143,13 +145,17 @@ finally:
     logger.info('Run time: %.2f sec' %(end_time-start_time))
     logger.info('Run time: %f cpu-hr' %((end_time-start_time)/60/60*domain.dist.comm_cart.size))
 
+# Save output
+with shelve.open(filename, protocol=-1) as file:
+    file['t'] = np.array(t_list)
+    file['x'] = x
+    for ne, f_list in enumerate(state_lists):
+        file[str_u(ne)] = np.array(f_list)
 
-
-
-
-
-def edge_plot(ulist,tlist,title,fname):
+# Plot edges
+def edge_plot(ulist, tlist, title, fname):
     u_array = np.array(ulist)
+    u_array = np.abs(u_array)**2
     t_array = np.array(tlist)
     xmesh, ymesh = quad_mesh(x=x, y=t_array)
     plt.figure()
@@ -161,14 +167,6 @@ def edge_plot(ulist,tlist,title,fname):
     plt.title(title)
     plt.savefig(fname)
 
-for e in range(len(edges)):
-    edge_plot(X_list[2*e],t_list,"edge "+str_edge(e),"./fano_plane/edge_"+str_edge(e)+".png")
-
-# Save output
-filename = "edges.dat"
-with shelve.open(filename, protocol=-1) as file:
-    file['t'] = np.array(t_list)
-    file['x'] = x
-    for e in range(len(edges)):
-        file['u{}'.format(s(e))] = np.array(X_list[2*e])
+for ne, f_list in enumerate(state_lists):
+    edge_plot(f_list , t_list, "edge "+str_edge(ne),"./fano_plane/edge_"+str_edge(ne)+".png")
 
