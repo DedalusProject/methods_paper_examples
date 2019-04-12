@@ -11,6 +11,7 @@ This script should be ran serially, because it is in 1D. It should take
 approximately X hours on Y (Ivy Bridge/Haswell/Broadwell/Skylake/etc) cores.
 """
 
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 import shelve
@@ -21,78 +22,78 @@ from dedalus.extras.plot_tools import quad_mesh, pad_limits
 import logging
 logger = logging.getLogger(__name__)
 
-# Parameters
+
+################
+## Parameters ##
+################
+
+# Spatial discretization
 Nx = 512
 Lx = 10
+
+# Temporal discretization
+dt = 1e-2
 stop_sim_time = 20
 timestepper = de.timesteppers.SBDF2
-dt = 1e-2
+save_iter = 10
 
-# Graph structure
-# Edges; the verticies go from 0:(nv-1).
-edges=np.array([[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],
-                [1,3],[3,5],[5,1],
-                [0,6],[1,6],[2,6],[3,6],[4,6],[5,6]],dtype=int)
+# Graph structure defined as list of directed edges
+edges = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0]]
+edges += [[1,3],[3,5],[5,1]]
+edges += [[0,6],[1,6],[2,6],[3,6],[4,6],[5,6]]
+#edges = [[0,1], [1,2], [3,1]]
 
-nv, ne = np.max(edges.T)+1, len(edges)
+################
+## Simulation ##
+################
+
+# Incidence matrix
+edges = np.array(edges)
+N_edge = edges.shape[0]
+N_vert = 1 + np.max(edges)
+I = np.zeros([N_vert, N_edge], dtype=int)
+for ne, edge in enumerate(edges):
+    v0, v1 = edge
+    I[v0][ne] = -1
+    I[v1][ne] = 1
 
 # Bases and domain
 x_basis = de.Chebyshev('x', Nx, interval=(0, Lx), dealias=2)
 domain  = de.Domain([x_basis], np.complex128)
 
-# Incidence matrix
-I = np.zeros([nv,ne],dtype=int)
-for e in range(ne):
-    v0,v1 = edges[e][0], edges[e][1]
-    I[v0][e], I[v1][e] = np.sign(v0-v1), np.sign(v1-v0)
-
-# Make variables and parameters list from the edges.
-def s(e): return str(edges[e,0])+str(edges[e,1])
-
-variables = parameters = []
-for e in range(ne):
-    variables  =  variables+['u'+s(e),'v'+s(e)]
-    parameters = parameters+['a'+s(e)]
-
 # Problem
+# Make u and ux variables for each edge
+str_edge = lambda ne: f"{edges[ne][0]}_{edges[ne][1]}"
+str_u = lambda ne: f"u_{str_edge(ne)}"
+str_ux = lambda ne: f"ux_{str_edge(ne)}"
+variables = [str_u(ne) for ne in range(N_edge)] + [str_ux(ne) for ne in range(N_edge)]
 problem = de.IVP(domain, variables=variables)
-problem.meta[:]['x']['dirichlet'] = True
-
-problem.parameters['i'] = i = 1j
-for e in range(ne):
-    problem.parameters[parameters[e]] = 1 # keep it simple
-
-# Template equations for each edge.
-problem.substitutions["L(u,v,a)"] = "i*dt(u) + 0.5*a*dx(v)"
-problem.substitutions["N(u)"]   = "-u*abs(u)**2"
-problem.substitutions["P(u,v,a)"] = "v - a*dx(u)"
-
-# Bulk equations
-for e in range(ne):
-    u, v, a = variables[2*e], variables[2*e+1], parameters[e]
-    problem.add_equation("L("+u+","+v+","+a+")=N("+u+")")
-    problem.add_equation("P("+u+","+v+","+a+")=0")
-
-# Boundary conditions:
-def bc(n,u):
-    if n == -1: return  "left("+u+")"
-    if n ==  1: return "right("+u+")"
-
-# continuity
-for v in range(nv):
-    edge=np.where(abs(I[v])==1)[0]
-    BC1=bc(I[v,edge[0]],"u"+s(edge[0]))
-    for e in range(1,len(edge)):
-        BC2=bc(I[v,edge[e]],"u"+s(edge[e]))
-        problem.add_bc(BC1+"-"+BC2+"=0")
-
-# energy conservation
-for v in range(nv):
-    edge=np.where(abs(I[v])==1)[0]
-    BC="("+str(I[v,edge[0]])+")*"+bc(I[v,edge[0]],"v"+s(edge[0]))
-    for e in range(1,len(edge)):
-        BC=BC+"+("+str(I[v,edge[e]])+")*"+bc(I[v,edge[e]],"v"+s(edge[e]))
-    problem.add_bc(BC+"=0")
+problem.substitutions["abs_sq(u)"] = "u * conj(u)"
+# Interior equations: NLS and first-order reduction for each edge
+for ne in range(N_edge):
+    u = str_u(ne)
+    ux = str_ux(ne)
+    problem.add_equation(f"1j*dt({u}) + 0.5*dx({ux}) = - {u}*abs_sq({u})")
+    problem.add_equation(f"{ux} - dx({u}) = 0")
+# Boundary conditions: continuity for each vertex
+def str_end(f, s):
+    if s == -1: return f"left({f})"
+    if s ==  1: return f"right({f})"
+for nv in range(N_vert):
+    # Get proper restriction of each incident edge value
+    u_edges = [str_end(str_u(ne), s) for ne, s in enumerate(I[nv]) if s != 0]
+    # Apply continuity to edges
+    for ne in range(len(u_edges) - 1):
+        un = u_edges[ne]
+        um = u_edges[ne + 1]
+        problem.add_bc(f"{un} - {um} = 0")
+# Boundary conditions: Kirchoff's law at each vertex
+for nv in range(N_vert):
+    # Get proper restriction of each incident edge gradient
+    ux_edges = [str_end(str_ux(ne), s) for ne, s in enumerate(I[nv]) if s != 0]
+    s_edges = [s for s in I[nv] if s != 0]
+    # Sum of signed gradients must be zero
+    problem.add_bc(f"{'+'.join(f'({s})*{ux}' for s, ux in zip(s_edges, ux_edges))} = 0")
 
 # Solver
 solver = problem.build_solver(timestepper)
@@ -104,6 +105,7 @@ solver.stop_iteration = np.inf
 def soliton(b,c,k):
     return k*np.exp(i*c*k*(x-b))/np.cosh(k*(x-b))
 
+variables = problem.variables
 x, scale = domain.grid(0), 1
 X=X_list=[]
 for var in range(len(variables)):
@@ -117,15 +119,33 @@ for var in range(len(variables)):
 
 # Main loop
 t_list = [solver.sim_time]
-while solver.ok:
-    solver.step(dt)
-    if solver.iteration % 10 == 0:
-        for var in range(len(variables)):
-            X[var].set_scales(scale, keep_data=True)
-            X_list[var].append(np.abs(np.copy(X[var]['g']))**2)
-        t_list.append(solver.sim_time)
-    if solver.iteration % 10 == 0:
-        logger.info('Iteration: %i, Time: %e, dt: %e' %(solver.iteration, solver.sim_time, dt))
+# Main loop
+try:
+    logger.info('Starting loop')
+    start_time = time.time()
+    while solver.ok:
+        solver.step(dt)
+        if (solver.iteration - 1) % 10 == 0:
+            logger.info('Iteration: %i, Time: %e, dt: %e' %(solver.iteration, solver.sim_time, dt))
+        if (solver.iteration - 1) % save_iter == 0:
+            for var in range(len(variables)):
+                X[var].set_scales(scale, keep_data=True)
+                X_list[var].append(np.abs(np.copy(X[var]['g']))**2)
+            t_list.append(solver.sim_time)
+except:
+    logger.error('Exception raised, triggering end of main loop.')
+    raise
+finally:
+    end_time = time.time()
+    logger.info('Iterations: %i' %solver.iteration)
+    logger.info('Sim end time: %f' %solver.sim_time)
+    logger.info('Run time: %.2f sec' %(end_time-start_time))
+    logger.info('Run time: %f cpu-hr' %((end_time-start_time)/60/60*domain.dist.comm_cart.size))
+
+
+
+
+
 
 def edge_plot(ulist,tlist,title,fname):
     u_array = np.array(ulist)
