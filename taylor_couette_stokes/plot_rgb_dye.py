@@ -41,10 +41,13 @@ def main(filename, start, count, output):
         for index in range(start, start+count):
             c1_mod = c1[index]
             c1_mod[c1[index]<0] = 0
+            c1_mod[c1[index]>1] = 1
             c2_mod = c2[index]
             c2_mod[c2[index]<0] = 0
+            c2_mod[c2[index]>1] = 1
             c3_mod = c3[index]
             c3_mod[c3[index]<0] = 0
+            c3_mod[c3[index]>1] = 1
             colors = tuple(np.array([c1_mod.T.flatten(),c2_mod.T.flatten(),c3_mod.T.flatten()]).transpose().tolist())
             ax = fig.add_subplot(111,projection='polar')
             ax.pcolormesh(theta,r,c1[0,:,:].T,color=colors)
