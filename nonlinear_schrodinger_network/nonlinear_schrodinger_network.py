@@ -38,13 +38,17 @@ timestepper = de.timesteppers.SBDF2
 
 # Output
 save_iter = 10
-filename = "nls_data.dat"
 
 # Graph structure defined as list of directed edges
 edges = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0]]
 edges += [[1,3],[3,5],[5,1]]
 edges += [[0,6],[1,6],[2,6],[3,6],[4,6],[5,6]]
 #edges = [[0,1], [1,2], [3,1]]
+
+# Variable name definitions as functions of edge number
+str_edge = lambda ne: f"{edges[ne][0]}_{edges[ne][1]}"
+str_u = lambda ne: f"u_{str_edge(ne)}"
+str_ux = lambda ne: f"ux_{str_edge(ne)}"
 
 ################
 ## Simulation ##
@@ -66,9 +70,6 @@ domain  = de.Domain([x_basis], np.complex128)
 
 # Problem
 # Make u and ux variables for each edge
-str_edge = lambda ne: f"{edges[ne][0]}_{edges[ne][1]}"
-str_u = lambda ne: f"u_{str_edge(ne)}"
-str_ux = lambda ne: f"ux_{str_edge(ne)}"
 v_edges = [(str_u(ne), str_ux(ne)) for ne in range(N_edge)]
 variables = [v for v_edge in v_edges for v in v_edge]
 problem = de.IVP(domain, variables=variables)
@@ -116,16 +117,11 @@ u0['g'] = soliton(x, Lx/2, 3, 2)
 u0.differentiate('x', out=ux0)
 
 # Outputs
-t_list = []
-state_lists = [[] for f in solver.state.fields[::2]]
-def save_state(scales=1):
-    t_list.append(solver.sim_time)
-    for n, f in enumerate(solver.state.fields[::2]):
-        f.set_scales(scales)
-        state_lists[n].append(np.copy(f['g']))
+snapshots = solver.evaluator.add_file_handler('snapshots', iter=save_iter, max_writes=100)
+for ne in range(N_edge):
+    snapshots.add_task(str_u(ne))
 
 # Main loop
-save_state()
 try:
     logger.info('Starting loop')
     start_time = time.time()
@@ -133,8 +129,6 @@ try:
         solver.step(dt)
         if (solver.iteration - 1) % 10 == 0:
             logger.info('Iteration: %i, Time: %e, dt: %e' %(solver.iteration, solver.sim_time, dt))
-        if solver.iteration % save_iter == 0:
-            save_state()
 except:
     logger.error('Exception raised, triggering end of main loop.')
     raise
@@ -144,29 +138,4 @@ finally:
     logger.info('Sim end time: %f' %solver.sim_time)
     logger.info('Run time: %.2f sec' %(end_time-start_time))
     logger.info('Run time: %f cpu-hr' %((end_time-start_time)/60/60*domain.dist.comm_cart.size))
-
-# Save output
-with shelve.open(filename, protocol=-1) as file:
-    file['t'] = np.array(t_list)
-    file['x'] = x
-    for ne, f_list in enumerate(state_lists):
-        file[str_u(ne)] = np.array(f_list)
-
-# Plot edges
-def edge_plot(ulist, tlist, title, fname):
-    u_array = np.array(ulist)
-    u_array = np.abs(u_array)**2
-    t_array = np.array(tlist)
-    xmesh, ymesh = quad_mesh(x=x, y=t_array)
-    plt.figure()
-    plt.pcolormesh(xmesh, ymesh, u_array, cmap='RdBu_r')
-    plt.axis(pad_limits(xmesh, ymesh))
-    plt.colorbar()
-    plt.xlabel('x')
-    plt.ylabel('t')
-    plt.title(title)
-    plt.savefig(fname)
-
-for ne, f_list in enumerate(state_lists):
-    edge_plot(f_list , t_list, "edge "+str_edge(ne),"./fano_plane/edge_"+str_edge(ne)+".png")
 
