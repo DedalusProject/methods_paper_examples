@@ -19,35 +19,15 @@ import pathlib
 import h5py
 
 
-###########
-## Graph ##
-###########
-
-# Graph structure defined as list of directed edges
-edges = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0]]
-edges += [[1,3],[3,5],[5,1]]
-edges += [[0,6],[1,6],[2,6],[3,6],[4,6],[5,6]]
+# Load graph
+with np.load('graph.npz') as graph:
+    edges = graph['edges']
+    verts = graph['points']
 
 # Variable name definitions as functions of edge number
 str_edge = lambda ne: f"{edges[ne][0]}_{edges[ne][1]}"
 str_u = lambda ne: f"u_{str_edge(ne)}"
 str_ux = lambda ne: f"ux_{str_edge(ne)}"
-
-# Vertex locations
-N_vert = 1 + np.max(edges)
-r3 = np.sqrt(3)
-verts = np.zeros((N_vert, 2))
-verts[0] = [-r3, -1]
-verts[1] = [-r3/2, 1/2]
-verts[2] = [0, 2]
-verts[3] = [r3/2, 1/2]
-verts[4] = [r3, -1]
-verts[5] = [0, -1]
-verts[6] = [0, 0]
-
-##############
-## Plotting ##
-##############
 
 # Plot edges
 def edge_plot(ulist, tlist, title, fname):
@@ -108,6 +88,7 @@ def graphplot(filename, start, count, output):
     # Parameters
     dpi = 100
     amp_stretch = 0.15
+    title = False
 
     # Make frames
     fig = plt.figure(figsize=(10,10))
@@ -117,25 +98,23 @@ def graphplot(filename, start, count, output):
         for index in range(start, start+count):
             axes = fig.add_axes([0.05, 0.05, 0.9, 0.9])
             for ne, edge in enumerate(edges):
+                # Load edge solution
                 L = verts[edge[0]]
                 R = verts[edge[1]]
                 u = file['tasks'][str_u(ne)][index]
-                y = np.abs(u)**2
+                y = np.abs(u)
+                # Plot symmetric and fill
                 xt, yt = apply_line_transform(x/10, y, L, R, amp_stretch)
-                #axes.plot(xt, yt, '-k')
                 xb, yb = apply_line_transform(x/10, -y, L, R, amp_stretch)
-                #axes.plot(xb, yb, '-k')
                 axes.fill(np.concatenate((xt, xb[::-1])), np.concatenate((yt, yb[::-1])), ec='none', fc='k', alpha=0.5)
-            axes.set_xlim(-1.8, 1.8)
-            axes.set_ylim(-1.3, 2.3)
+            axes.set_xlim(-1.1, 1.1)
+            axes.set_ylim(-1.1, 1.1)
             axes.axis('off')
-
+            if title:
+                fig.suptitle('%.2f' %t[index], fontsize='large')
+            # Save frame
             savename = 'graph_%06i.png' %file['scales/write_number'][index]
             savepath = output.joinpath(savename)
-
-
-            fig.suptitle('%.2f' %t[index], fontsize='large')
-            #fig.savefig(os.path.join(folder, 'frame_%05i.png' %index), dpi=100)
             fig.savefig(str(savepath), dpi=dpi)
             fig.clear()
 
