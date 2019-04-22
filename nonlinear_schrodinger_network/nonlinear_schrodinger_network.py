@@ -39,11 +39,9 @@ timestepper = de.timesteppers.SBDF2
 # Output
 save_iter = 10
 
-# Graph structure defined as list of directed edges
-edges = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0]]
-edges += [[1,3],[3,5],[5,1]]
-edges += [[0,6],[1,6],[2,6],[3,6],[4,6],[5,6]]
-#edges = [[0,1], [1,2], [3,1]]
+# Load graph structure
+graph = np.load('graph.npz')
+edges = graph.edges
 
 # Variable name definitions as functions of edge number
 str_edge = lambda ne: f"{edges[ne][0]}_{edges[ne][1]}"
