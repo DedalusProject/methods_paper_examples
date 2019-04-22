@@ -24,7 +24,8 @@ tolerance = 1e-10
 
 a = 1
 b = 0
-#b = -7/2
+b = -7/2
+b = 1
 #b = 1
 
 nz = 512
@@ -39,6 +40,7 @@ logger.info("m={}, m_ad = {}, m_poly=(3-{})/(1+{})={}".format(m, m_ad, b, a, m_p
 Lz = 0.25 ; F = 1.5 # works; bigger L or F doesn't
 Lz = 2 ; F = 1.3 # works
 
+
 z_basis = de.Chebyshev('z', nz, interval=(0,Lz), dealias=2)
 domain = de.Domain([z_basis], np.float64, comm=MPI.COMM_SELF)
 
@@ -50,7 +52,7 @@ problem.parameters['Lz'] = Lz
 problem.parameters['gamma'] = gamma
 problem.parameters['F'] = F
 problem.parameters['lnT0'] = lnT0 = 0
-problem.parameters['lnρ0'] = lnρ0 = 0
+problem.parameters['lnρ0'] = lnρ0 = m*lnT0
 problem.substitutions['ρκ(ln_rho,ln_T)'] = "exp(ln_rho*(a+1)+ln_T*(b))"
 problem.add_equation("dz(E) = -3*F*ρκ(ln_rho,ln_T)")
 problem.add_equation("E = exp(4*ln_T)")
