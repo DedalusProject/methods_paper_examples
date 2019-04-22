@@ -86,8 +86,8 @@ def apply_line_transform(x, y, L, R, sy=None):
 def graphplot(filename, start, count, output):
 
     # Parameters
-    dpi = 100
-    amp_stretch = 0.15
+    dpi = 60
+    amp_stretch = 0.01
     title = False
 
     # Make frames
@@ -104,8 +104,8 @@ def graphplot(filename, start, count, output):
                 u = file['tasks'][str_u(ne)][index]
                 y = np.abs(u)
                 # Plot symmetric and fill
-                xt, yt = apply_line_transform(x/10, y, L, R, amp_stretch)
-                xb, yb = apply_line_transform(x/10, -y, L, R, amp_stretch)
+                xt, yt = apply_line_transform(x, y, L, R, amp_stretch)
+                xb, yb = apply_line_transform(x, -y, L, R, amp_stretch)
                 axes.fill(np.concatenate((xt, xb[::-1])), np.concatenate((yt, yb[::-1])), ec='none', fc='k', alpha=0.5)
             axes.set_xlim(-1.1, 1.1)
             axes.set_ylim(-1.1, 1.1)

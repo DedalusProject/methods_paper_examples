@@ -28,16 +28,16 @@ logger = logging.getLogger(__name__)
 ################
 
 # Spatial discretization
-Nx = 256
-Lx = 10
+Nx = 64
+Lx = 1
 
 # Temporal discretization
-dt = 1e-2
-stop_sim_time = 10
+dt = 1e-3
+stop_sim_time = 0.1
 timestepper = de.timesteppers.SBDF2
 
 # Output
-save_iter = 10
+save_iter = 1
 
 # Load graph
 with np.load('graph.npz') as graph:
@@ -115,13 +115,13 @@ solver.stop_iteration = np.inf
 def soliton(x, x0, c, k):
     return k * np.exp(1j*c*k*(x-x0)) / np.cosh(k*(x-x0))
 x = domain.grid(0)
-u0 = solver.state.fields[0]
-ux0 = solver.state.fields[1]
-u0['g'] = soliton(x, Lx/2, 3, 2)
-u0.differentiate('x', out=ux0)
+ui = solver.state.fields[0]
+uxi = solver.state.fields[1]
+ui['g'] = soliton(x, Lx/2, 4, 40)
+ui.differentiate('x', out=uxi)
 
 # Outputs
-snapshots = solver.evaluator.add_file_handler('snapshots', iter=save_iter, max_writes=100)
+snapshots = solver.evaluator.add_file_handler('snapshots', iter=save_iter, max_writes=1000)
 for ne in range(N_edge):
     snapshots.add_task(str_u(ne))
 
