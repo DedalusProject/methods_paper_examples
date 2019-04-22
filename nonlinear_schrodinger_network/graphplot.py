@@ -22,7 +22,7 @@ import h5py
 # Load graph
 with np.load('graph.npz') as graph:
     edges = graph['edges']
-    verts = graph['points']
+    verts = graph['vertices']
 
 # Variable name definitions as functions of edge number
 str_edge = lambda ne: f"{edges[ne][0]}_{edges[ne][1]}"
