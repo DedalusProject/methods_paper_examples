@@ -26,40 +26,39 @@ a = 1
 b = 0
 b = -7/2
 b = 1
+#b = 1
 
-nz = 128
+nz = 512
 
 # from Barekat & Brandenburg 2014
 m_poly = (3-b)/(1+a)
 
 gamma = 5/3
 m_ad = 1/(gamma-1)
-epsilon = 0
-m = m_ad - epsilon
-Lz = 2
+m = m_poly
+logger.info("m={}, m_ad = {}, m_poly=(3-{})/(1+{})={}".format(m, m_ad, b, a, m_poly))
+Lz = 0.25 ; F = 1.5 # works; bigger L or F doesn't
+Lz = 2 ; F = 1.3 # works
 
-z_basis = de.Chebyshev('z', nz, interval=(0,Lz), dealias=4)
+
+z_basis = de.Chebyshev('z', nz, interval=(0,Lz), dealias=2)
 domain = de.Domain([z_basis], np.float64, comm=MPI.COMM_SELF)
 
-problem = de.NLBVP(domain, variables=['E','ln_T', 'ln_rho', 'F'], ncc_cutoff=ncc_cutoff)
+problem = de.NLBVP(domain, variables=['E','ln_T', 'ln_rho'], ncc_cutoff=ncc_cutoff)
 problem.parameters['a'] = a
 problem.parameters['b'] = b
 problem.parameters['g'] = g = m+1
 problem.parameters['Lz'] = Lz
 problem.parameters['gamma'] = gamma
-problem.parameters['τ_c'] = τ_c = 1e4
-problem.parameters['F_ratio'] = F_ratio = 0.25*(5.770e3/3.8e4)**4
-logger.info("τ_c={} F={} τ_c*F={}".format(τ_c, F_ratio, F_ratio*τ_c))
-Cp = gamma/(gamma-1)
-#Tkappa is T*kappa
-problem.substitutions['rhokappa(ln_rho,ln_T)'] = "exp(ln_rho*(a+1)+ln_T*(b))"
-problem.add_equation("1/3*dz(E) = -F*τ_c*rhokappa(ln_rho,ln_T)")
+problem.parameters['F'] = F
+problem.parameters['lnT0'] = lnT0 = 0
+problem.parameters['lnρ0'] = lnρ0 = m*lnT0
+problem.substitutions['ρκ(ln_rho,ln_T)'] = "exp(ln_rho*(a+1)+ln_T*(b))"
+problem.add_equation("dz(E) = -3*F*ρκ(ln_rho,ln_T)")
 problem.add_equation("E = exp(4*ln_T)")
 problem.add_equation("dz(ln_T) + dz(ln_rho) = -g*exp(-ln_T)")
-problem.add_equation("dz(F) = 0")
-problem.add_bc("left(ln_T) =  0")
-problem.add_bc("left(ln_rho) =  0")
-problem.add_bc("left(F) = F_ratio")
+problem.add_bc("left(ln_T)   = lnT0")
+problem.add_bc("left(ln_rho) = lnρ0")
 
 # Setup initial guess
 solver = problem.build_solver()
@@ -68,7 +67,6 @@ z_diag = domain.grid(0, scales=1)
 ln_T = solver.state['ln_T']
 ln_rho = solver.state['ln_rho']
 E = solver.state['E']
-F = solver.state['F']
 ln_T.set_scales(domain.dealias)
 ln_rho.set_scales(domain.dealias)
 E.set_scales(domain.dealias)
@@ -78,35 +76,33 @@ grad_ln_rho = domain.new_field()
 #ln_T['g'] = np.log(1-z)
 #ln_rho['g'] = m*ln_T['g']
 #isothermal
-ln_T['g'] = 0
+ln_T['g'] = lnT0
 grad_ln_rho['g'] = -g
-grad_ln_rho.antidifferentiate('z',('left',0), out=ln_rho)
+grad_ln_rho.antidifferentiate('z',('left',lnρ0), out=ln_rho)
 
 E['g'] = np.exp(4*ln_T['g'])
-F['g'] = F_ratio
 
 diagnostics = solver.evaluator.add_dictionary_handler(group='diagnostics')
-#diagnostics.add_task('F',name='flux')
 diagnostics.add_task('1/gamma*dz(ln_T) - (gamma-1)/gamma*dz(ln_rho)',name='dsdz_Cp')
 diagnostics.add_task('1/gamma*ln_T - (gamma-1)/gamma*ln_rho',name='s_Cp')
-diagnostics.add_task('-4*τ_c*rhokappa(ln_rho,ln_T)', name='dτ')
+diagnostics.add_task('-ρκ(ln_rho,ln_T)', name='dτ')
 
 # Iterations
 pert = solver.perturbations.data
 pert.fill(1+tolerance)
-do_plot = False #True
+do_plot = True #True
 solver.evaluator.evaluate_group("diagnostics")
+if do_plot:
+    fig, ax = plt.subplots()
+    ax2 = ax.twinx()
+
 try:
-    while np.sum(np.abs(pert)) > tolerance:
+    while np.sum(np.abs(pert)) > tolerance and np.sum(np.abs(pert)) < 1e6:
         if do_plot:
-            fig = plt.figure()
-            ax = fig.add_subplot(1,1,1)
-            ax.plot(z, ln_T['g'], label='T')
-            ax.set_ylabel("T")
-            ax2 = ax.twinx()
-            ax2.plot(z, ln_rho['g'], label='rho', linestyle='dashed')
-            ax2.set_ylabel("rho")
-            plt.show()
+            ax.plot(z, ln_T['g'], label='lnT')
+            ax.set_ylabel("lnT")
+            ax2.plot(z, ln_rho['g'], label='lnrho', linestyle='dashed')
+            ax2.set_ylabel("lnrho")
 
         solver.newton_iteration()
         logger.info('Perturbation norm: {}'.format(np.sum(np.abs(pert))))
@@ -118,10 +114,6 @@ except:
 ln_rho_bot = ln_rho.interpolate(z=0)['g'][0]
 ln_rho_top = ln_rho.interpolate(z=Lz)['g'][0]
 logger.info("n_rho = {}".format(ln_rho_bot - ln_rho_top))
-#logger.info("flux(z):\n {}".format(diagnostics['flux']['g']))
-logger.info("s(z)/Cp:\n {}".format(diagnostics['s_Cp']['g']))
-logger.info("dsdz(z)/Cp:\n {}".format(diagnostics['dsdz_Cp']['g']))
-logger.info("target value at top dsdz(Lz)/Cp={}".format(-1*(gamma-1)/gamma*epsilon))
 fig = plt.figure()
 ax = fig.add_subplot(2,1,1)
 ax.plot(z, ln_T['g'], label='T')
@@ -140,12 +132,14 @@ dtau = domain.new_field()
 tau = domain.new_field()
 tau.set_scales(domain.dealias)
 dtau['g'] = diagnostics['dτ']['g'] # τ_c*np.exp(ln_rho['g']*(a+1)+ln_T['g']*b)
-dtau.antidifferentiate('z',('left',τ_c), out=tau)
+dtau.antidifferentiate('z',('right',0), out=tau)
 fig = plt.figure()
 ax = fig.add_subplot(2,1,1)
 ax.plot(z, tau['g'], label='τ')
 ax.set_yscale('log')
 ax.set_ylabel('τ(z)')
+ax2 = ax.twinx()
+ax2.plot(z, tau['g'], linestyle='dashed')
 ax = fig.add_subplot(2,1,2)
 ax.plot(ln_rho['g']+ln_T['g'], ln_T['g'], label=r'$\ln T$', linestyle='dashed')
 ax.set_ylabel(r'$\ln T$')
@@ -157,6 +151,9 @@ z_phot = z[i_tau_23]
 
 logger.info('photosphere is at z = {}'.format(z_phot))
 
+plt.show()
+import sys
+sys.exit()
 
 logger.info("solving for linear, ideal waves, neglecting viscous and thermal diffusion")
 from eigentools import Eigenproblem
