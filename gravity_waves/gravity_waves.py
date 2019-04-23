@@ -24,11 +24,11 @@ tolerance = 1e-10
 
 a = 1
 b = 0
-b = -7/2
-b = 1
+#b = -7/2
+#b = 1
 #b = 1
 
-nz = 512
+nz = 128
 
 # from Barekat & Brandenburg 2014
 m_poly = (3-b)/(1+a)
@@ -38,13 +38,14 @@ m_ad = 1/(gamma-1)
 m = m_poly
 logger.info("m={}, m_ad = {}, m_poly=(3-{})/(1+{})={}".format(m, m_ad, b, a, m_poly))
 Lz = 0.25 ; F = 1.5 # works; bigger L or F doesn't
-Lz = 2 ; F = 1.3 # works
+Lz = 1.2 ; F = 1.3 #2 ; F = 1.3 # works
 
 
 z_basis = de.Chebyshev('z', nz, interval=(0,Lz), dealias=2)
 domain = de.Domain([z_basis], np.float64, comm=MPI.COMM_SELF)
 
-problem = de.NLBVP(domain, variables=['E','ln_T', 'ln_rho'], ncc_cutoff=ncc_cutoff)
+#problem = de.NLBVP(domain, variables=['E','ln_T', 'ln_rho'], ncc_cutoff=ncc_cutoff)
+problem = de.NLBVP(domain, variables=['ln_T', 'ln_rho'], ncc_cutoff=ncc_cutoff)
 problem.parameters['a'] = a
 problem.parameters['b'] = b
 problem.parameters['g'] = g = m+1
@@ -54,8 +55,9 @@ problem.parameters['F'] = F
 problem.parameters['lnT0'] = lnT0 = 0
 problem.parameters['lnρ0'] = lnρ0 = m*lnT0
 problem.substitutions['ρκ(ln_rho,ln_T)'] = "exp(ln_rho*(a+1)+ln_T*(b))"
-problem.add_equation("dz(E) = -3*F*ρκ(ln_rho,ln_T)")
-problem.add_equation("E = exp(4*ln_T)")
+#problem.add_equation("dz(E) = -3*F*ρκ(ln_rho,ln_T)")
+#problem.add_equation("E = exp(4*ln_T)")
+problem.add_equation("4*dz(ln_T) = -3*F*exp(ln_rho*(a+1)+ln_T*(b-4))")
 problem.add_equation("dz(ln_T) + dz(ln_rho) = -g*exp(-ln_T)")
 problem.add_bc("left(ln_T)   = lnT0")
 problem.add_bc("left(ln_rho) = lnρ0")
@@ -66,21 +68,26 @@ z = domain.grid(0, scales=domain.dealias)
 z_diag = domain.grid(0, scales=1)
 ln_T = solver.state['ln_T']
 ln_rho = solver.state['ln_rho']
-E = solver.state['E']
+#E = solver.state['E']
 ln_T.set_scales(domain.dealias)
 ln_rho.set_scales(domain.dealias)
-E.set_scales(domain.dealias)
+#E.set_scales(domain.dealias)
 grad_ln_rho = domain.new_field()
 
-#polytrope
-#ln_T['g'] = np.log(1-z)
-#ln_rho['g'] = m*ln_T['g']
-#isothermal
-ln_T['g'] = lnT0
-grad_ln_rho['g'] = -g
-grad_ln_rho.antidifferentiate('z',('left',lnρ0), out=ln_rho)
-
-E['g'] = np.exp(4*ln_T['g'])
+IC = 'isothermal'
+if IC == 'polytrope':
+    n_rho = 3
+    z_phot = np.exp(-n_rho/m)
+    below = np.where(z<=z_phot)
+    logger.info(below)
+    ln_T['g'] = np.log(1-z_phot)
+    ln_T['g'][below] = np.log(1-z[below])
+    ln_rho['g'] = m*ln_T['g']
+    logger.info('z_phot = {}'.format(z_phot))
+if IC =='isothermal':
+    ln_T['g'] = lnT0
+    grad_ln_rho['g'] = -g
+    grad_ln_rho.antidifferentiate('z',('left',lnρ0), out=ln_rho)
 
 diagnostics = solver.evaluator.add_dictionary_handler(group='diagnostics')
 diagnostics.add_task('1/gamma*dz(ln_T) - (gamma-1)/gamma*dz(ln_rho)',name='dsdz_Cp')
@@ -103,7 +110,6 @@ try:
             ax.set_ylabel("lnT")
             ax2.plot(z, ln_rho['g'], label='lnrho', linestyle='dashed')
             ax2.set_ylabel("lnrho")
-
         solver.newton_iteration()
         logger.info('Perturbation norm: {}'.format(np.sum(np.abs(pert))))
         logger.info('rho iterate:  {}--{}'.format(ln_rho['g'][-1],ln_rho['g'][0]))
