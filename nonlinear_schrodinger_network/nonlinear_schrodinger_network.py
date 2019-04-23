@@ -28,27 +28,27 @@ logger = logging.getLogger(__name__)
 ################
 
 # Spatial discretization
-Nx = 512
-Lx = 10
+Nx = 64
+Lx = 1
 
 # Temporal discretization
-dt = 1e-2
-stop_sim_time = 5
+dt = 1e-3
+stop_sim_time = 0.1
 timestepper = de.timesteppers.SBDF2
 
 # Output
-save_iter = 10
+save_iter = 1
 
-# Graph structure defined as list of directed edges
-edges = [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0]]
-edges += [[1,3],[3,5],[5,1]]
-edges += [[0,6],[1,6],[2,6],[3,6],[4,6],[5,6]]
-#edges = [[0,1], [1,2], [3,1]]
+# Load graph
+with np.load('graph.npz') as graph:
+    edges = graph['edges']
+    lengths = graph['lengths']
 
 # Variable name definitions as functions of edge number
 str_edge = lambda ne: f"{edges[ne][0]}_{edges[ne][1]}"
 str_u = lambda ne: f"u_{str_edge(ne)}"
 str_ux = lambda ne: f"ux_{str_edge(ne)}"
+str_L = lambda ne: f"L_{str_edge(ne)}"
 
 ################
 ## Simulation ##
@@ -74,13 +74,17 @@ v_edges = [(str_u(ne), str_ux(ne)) for ne in range(N_edge)]
 variables = [v for v_edge in v_edges for v in v_edge]
 problem = de.IVP(domain, variables=variables)
 problem.meta[:]['x']['dirichlet'] = True
+# Length parameters
+for ne in range(N_edge):
+    problem.parameters[str_L(ne)] = lengths[ne]
 problem.substitutions["abs_sq(u)"] = "u * conj(u)"
 # Interior equations: NLS and first-order reduction for each edge
 for ne in range(N_edge):
     u = str_u(ne)
     ux = str_ux(ne)
-    problem.add_equation(f"1j*dt({u}) + 0.5*dx({ux}) = - {u}*abs_sq({u})")
-    problem.add_equation(f"{ux} - dx({u}) = 0")
+    L = str_L(ne)
+    problem.add_equation(f"1j*dt({u}) + 0.5*dx({ux})/{L} = - {u}*abs_sq({u})")
+    problem.add_equation(f"{ux} - dx({u})/{L} = 0")
 # Boundary conditions: continuity for each vertex
 def str_end(f, s):
     if s == -1: return f"left({f})"
@@ -111,13 +115,13 @@ solver.stop_iteration = np.inf
 def soliton(x, x0, c, k):
     return k * np.exp(1j*c*k*(x-x0)) / np.cosh(k*(x-x0))
 x = domain.grid(0)
-u0 = solver.state.fields[0]
-ux0 = solver.state.fields[1]
-u0['g'] = soliton(x, Lx/2, 3, 2)
-u0.differentiate('x', out=ux0)
+ui = solver.state.fields[0]
+uxi = solver.state.fields[1]
+ui['g'] = soliton(x, Lx/2, 4, 40)
+ui.differentiate('x', out=uxi)
 
 # Outputs
-snapshots = solver.evaluator.add_file_handler('snapshots', iter=save_iter, max_writes=100)
+snapshots = solver.evaluator.add_file_handler('snapshots', iter=save_iter, max_writes=1000)
 for ne in range(N_edge):
     snapshots.add_task(str_u(ne))
 
