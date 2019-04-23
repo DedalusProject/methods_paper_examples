@@ -26,10 +26,12 @@ atmosphere_file = h5py.File('./atmosphere.h5', 'r')
 z_atmosphere = atmosphere_file['z'][:]
 ln_T = atmosphere_file['ln_T'][:]
 ln_rho = atmosphere_file['ln_rho'][:]
+brunt2 = atmosphere_file['brunt_squared'][:]
+nz = atmosphere_file['nz'][()]
+Lz = atmosphere_file['Lz'][()]
+gamma = atmosphere_file['gamma'][()]
 atmosphere_file.close()
 
-nz = z_atmosphere.shape[0]
-Lz = 1.2
 z_basis = de.Chebyshev('z', nz, interval=(0,Lz))
 
 gamma = 5/3
@@ -75,18 +77,11 @@ waves.add_bc('left(dz(u)) = 0')
 waves.add_bc('right(dz(u)) = 0')
 waves.add_bc('left(dz(T1)) = 0')
 
-#brunt = np.sqrt(diagnostics['dsdz_Cp']['g'][-1]*g)
-#logger.info('T0 = {}, N = {}'.format(T0['g'][0], brunt))
+brunt = np.sqrt(np.max(brunt2))
 
-#H = -1/del_ln_rho0['g'][-1]
-#other_brunt = np.sqrt((gamma-1)/gamma*g/H)
-#logger.info('other brunt: {} (H = {})'.format(other_brunt, H))
-brunt = 1
-
-import h5py
 EP = Eigenproblem(waves, sparse=False)
-ks = np.linspace(0.5,10.5,num=50)
-ks = [1,3,5]
+#ks = np.linspace(0.5,10.5,num=50)
+ks = np.logspace(0,1, num=5)
 freqs = []
 for i, k in enumerate(ks):
     EP.EVP.namespace['k'].value = k
@@ -97,12 +92,11 @@ for i, k in enumerate(ks):
     freqs.append(y)
     fig2, ax2 = plt.subplots()
     z = domain_EVP.grid(0)
-    #print('len freqs: {}'.format(len(freqs)))
+
     for ikk, ik in enumerate(EP.evalues_good_index):
         ω = freqs[i][ikk]
-        #print(ik, ω, brunt)
+
         if np.abs(ω.imag) < brunt and np.abs(ω.real) < 1e-3 and ω.imag > 1e-3:
-            print(ω, brunt)
             EP.solver.set_state(ik)
             w = EP.solver.state['w']
             ax2.plot(z, w['g'], label='{:g}'.format(ω.imag))
@@ -113,5 +107,5 @@ with h5py.File('wave_frequencies.h5','w') as outfile:
     outfile.create_dataset('grid',data=ks)
     for i, freq in enumerate(freqs):
         outfile.create_dataset('freq_{}'.format(i),data=freq)
-
+    outfile.create_dataset('brunt', data=brunt)
 plt.show()
