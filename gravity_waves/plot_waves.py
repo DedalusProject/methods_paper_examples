@@ -29,7 +29,7 @@ ax[0].set_ylabel(r'frequency $\omega$')
 ax[0].set_ylim(0,15)
 ax[1].set_xlabel('wavenumber k')
 ax[1].set_ylabel(r'Period $1/\omega$')
-ax[1].set_ylim(1/brunt*0.9,1/brunt*5.1)
+ax[1].set_ylim(0,1/brunt*5.1)
 
 fig.savefig('frequency_spectrum.png', dpi=600)
 plt.show()
