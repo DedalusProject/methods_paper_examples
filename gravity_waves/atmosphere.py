@@ -5,7 +5,7 @@ Solves for an atmosphere in hydrostatic and thermal equilibrium when energy tran
 
     κ = κ_0 * ρ^a * T^b
 
-The system is formulated in terms of lnρ and lnT, and th solution utilizes the NLBVP system of Dedalus.  
+The system is formulated in terms of lnρ and lnT, and th solution utilizes the NLBVP system of Dedalus.
 
 It should take approximately 3 seconds on 1 Haswell core.
 """
@@ -13,7 +13,7 @@ import numpy as np
 from mpi4py import MPI
 import matplotlib.pyplot as plt
 from dedalus import public as de
-from dedalus.extras import flow_tools
+import h5py
 
 import logging
 logger = logging.getLogger(__name__)
@@ -70,7 +70,6 @@ ln_T = solver.state['ln_T']
 ln_rho = solver.state['ln_rho']
 ln_T.set_scales(domain.dealias)
 ln_rho.set_scales(domain.dealias)
-grad_ln_rho = domain.new_field()
 
 IC = 'isothermal'
 if IC == 'polytrope':
@@ -84,6 +83,7 @@ if IC == 'polytrope':
     logger.info('z_phot = {}'.format(z_phot))
 if IC =='isothermal':
     ln_T['g'] = lnT0
+    grad_ln_rho = domain.new_field()
     grad_ln_rho['g'] = -g
     grad_ln_rho.antidifferentiate('z',('left',lnρ0), out=ln_rho)
 
@@ -154,5 +154,19 @@ logger.info(i_tau_23)
 z_phot = z[i_tau_23]
 
 logger.info('photosphere is at z = {}'.format(z_phot))
+
+atmosphere = solver.evaluator.add_file_handler('./atm')
+atmosphere.add_system(solver.state, layout='g')
+#solver.evaluator.evaluate_group('atmosphere')
+solver.evaluator.evaluate_handlers([atmosphere], world_time=0, wall_time=0, sim_time=0, timestep=0, iteration=0)
+
+z_atmosphere = domain.grid(0, scales=1)
+ln_T.set_scales(1, keep_data=True)
+ln_rho.set_scales(1, keep_data=True)
+atmosphere_file = h5py.File('./atmosphere.h5', 'w')
+atmosphere_file['z'] = z_atmosphere
+atmosphere_file['ln_T'] = ln_T['g']
+atmosphere_file['ln_rho'] = ln_rho['g']
+atmosphere_file.close()
 
 plt.show()
