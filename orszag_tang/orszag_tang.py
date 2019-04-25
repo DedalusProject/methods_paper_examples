@@ -1,11 +1,3 @@
-"""
-2D Orszag-Tang
-
-Compressible magnetohydrodynamics with ideal gas equation of state and vector potential 
-magnetic field.
-
-It should take approximately 13 hours on 1024 (Ivy Bridge) cores 
-"""
 
 import numpy as np
 from mpi4py import MPI
@@ -16,6 +8,7 @@ from dedalus.extras import flow_tools
 
 import logging
 logger = logging.getLogger(__name__)
+
 
 # Parameters
 Lx, Ly = (1., 1.)
@@ -32,6 +25,7 @@ x_basis = de.Fourier('x', 4096, interval=(0, Lx), dealias=3/2)
 y_basis = de.Fourier('y', 4096, interval=(0, Ly), dealias=3/2)
 domain = de.Domain([x_basis, y_basis], grid_dtype=np.float64)
 
+# 2D Boussinesq hydrodynamics
 problem = de.IVP(domain, variables=['u','v','T','logrho','A'])
 
 problem.substitutions['bx'] = "dy(A)"
@@ -109,20 +103,6 @@ snapshots.add_task("bx",name="Bx")
 snapshots.add_task("by",name="By")
 snapshots.add_task("exp(logrho)",name="rho")
 snapshots.add_task("T+T0",name="temp")
-
-rho_output = solver.evaluator.add_file_handler('outputs_Re1e4_4096', sim_dt=0.1, max_writes=20)
-rho_output.add_task("exp(logrho)",name="rho",scales=(2,2))
-rho_output.add_task("exp(logrho)",name="rho c",layout='c')
-rho_output.add_task("u",scales=(2,2))
-rho_output.add_task("u",name='u c',layout='c')
-rho_output.add_task("v",scales=(2,2))
-rho_output.add_task("v",name='v c',layout='c')
-rho_output.add_task("bx",scales=(2,2))
-rho_output.add_task("bx",name='bx c',layout='c')
-rho_output.add_task("by",scales=(2,2))
-rho_output.add_task("by",name='by c',layout='c')
-rho_output.add_task("T+T0",name="T",scales=(2,2))
-rho_output.add_task("T+T0",name="T c",layout='c')
 
 # CFL
 CFL = flow_tools.CFL(solver, initial_dt=dt, cadence=5, safety=0.6,
