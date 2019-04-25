@@ -8,8 +8,8 @@ import time
 logger = logging.getLogger(__name__)
 
 # parameters
-nr = 64
-nθ = 64
+nr = 512
+nθ = 512
 R_in = 1
 R_out = 2
 
@@ -22,8 +22,8 @@ nrot = 8 # four turns clockwise, four turns counterclockwise
 # inner rotation periods
 T_inner = 2*np.pi*R_in/ampl
 
-r = de.Chebyshev('r',nr, interval=[R_in, R_out])
-θ = de.Fourier('θ',nθ)
+r = de.Chebyshev('r',nr, interval=[R_in, R_out], dealias=3/2)
+θ = de.Fourier('θ',nθ, dealias=3/2)
 domain = de.Domain([θ, r], grid_dtype='float')
 
 # forcing 
@@ -43,13 +43,14 @@ def Forcing(*args, domain=domain, F=SquareBoundaryForcing):
 
 de.operators.parseables['Vr'] = Forcing
 
-problem = de.IVP(domain, variables=['u', 'v', 'p', 'ur', 'vr', 'c1', 'c2', 'c3'])#, 'c1r', 'c2r', 'c3r'])
+problem = de.IVP(domain, variables=['φ','u', 'v', 'p', 'ur', 'vr', 'c1', 'c2', 'c3'])#, 'c1r', 'c2r', 'c3r'])
 
 problem.parameters['ν'] = ν
 problem.parameters['κ'] = κ
 problem.parameters['ampl'] = ampl
 problem.parameters['delta'] = delta
 problem.parameters['nrot'] = nrot
+problem.parameters['R_in'] = R_in
 
 # not pre-multiplied...don't use this in an equation!
 problem.substitutions['DivU'] = "ur + u/r + dθ(v)/r"
@@ -82,6 +83,9 @@ problem.add_equation('dr(v) - vr = 0')
 # problem.add_equation('dr(c1) - c1r = 0')
 # problem.add_equation('dr(c2) - c2r = 0')
 # problem.add_equation('dr(c3) - c3r = 0')
+
+# Phi is just the rotational phase of the inner cylinder...solving as a PDE for convenience
+problem.add_equation('dt(φ) - v/R_in = 0')
 
 # boundary conditions
 #problem.add_bc('left(v) = ampl')
@@ -136,17 +140,18 @@ check.add_system(solver.state)
 analysis_tasks.append(check)
 
 snap = solver.evaluator.add_file_handler('snapshots', sim_dt=T_inner/100, max_writes=50)
-snap.add_task('c1', scales=10)
-snap.add_task('c2', scales=10)
-snap.add_task('c3', scales=10)
+snap.add_task('c1')#, scales=10)
+snap.add_task('c2')#, scales=10)
+snap.add_task('c3')#, scales=10)
 snap.add_task('v')
+snap.add_task('left(φ)')
 analysis_tasks.append(snap)
 
 # run control
 solver.stop_wall_time = np.inf
 solver.stop_iteration = np.inf
 solver.stop_sim_time = nrot*T_inner
-dt = 0.01
+dt = 0.005
 
 start  = time.time()
 while solver.ok:

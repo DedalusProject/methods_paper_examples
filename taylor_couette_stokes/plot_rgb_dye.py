@@ -13,6 +13,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from dedalus.extras import plot_tools
 import h5py
+import logging
+logger = logging.getLogger(__name__)
 
 def trim_zero(data):
     data[data<0] = 0
@@ -30,15 +32,18 @@ def main(filename, start, count, output):
     fig = plt.figure()
     # Plot writes
     with h5py.File(filename, mode='r') as file:
-        r = file['scales/r/10']
-        theta = file['scales/θ/10']
+        # r = file['scales/r/10']
+        # theta = file['scales/θ/10']
+        r = file['scales/r/1.0']
+        theta = file['scales/θ/1.0']
 
         theta,r = plot_tools.quad_mesh(theta,r)
         c1 = file['tasks/c1']
         c2 = file['tasks/c2']
         c3 = file['tasks/c3']
-
+        phi = file['tasks/left(φ)']
         for index in range(start, start+count):
+            logger.info("Plotting frame {:d}".format(index))
             c1_mod = c1[index]
             c1_mod[c1[index]<0] = 0
             c1_mod[c1[index]>1] = 1
@@ -48,9 +53,15 @@ def main(filename, start, count, output):
             c3_mod = c3[index]
             c3_mod[c3[index]<0] = 0
             c3_mod[c3[index]>1] = 1
+            phi_in = phi[index,0,0]
             colors = tuple(np.array([c1_mod.T.flatten(),c2_mod.T.flatten(),c3_mod.T.flatten()]).transpose().tolist())
             ax = fig.add_subplot(111,projection='polar')
             ax.pcolormesh(theta,r,c1[0,:,:].T,color=colors)
+            ax.annotate("", xy=(phi_in, 0.6), xytext=(phi_in,1.),
+                        arrowprops=dict(arrowstyle='-',
+                                        connectionstyle='arc3',
+                                        linewidth=2))
+                                
             ax.spines['polar'].set_visible(False)
 
             ## removing the tick marks
