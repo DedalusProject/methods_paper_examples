@@ -13,9 +13,9 @@ from volume_penalty import Body, Ellipse
 
 
 # Time-Space Parameters
-dt     =  3/16384
+dt     =  1e-3/4
 Lx, Ly =  4., 4.
-nx, ny =  1024, 1024
+nx, ny =  512, 512
 
 # Initial body angle; inital x,y = domain centre, not moving.
 theta0 = np.pi/6
@@ -26,14 +26,14 @@ mass    = 0.1 # mass
 gravity = 1   # gravity
 
 a,b = 2, 1 # ellipse semimajor/semiminor axes
-eps = 0.01 # smoothing parameter
+eps = 0.025 # smoothing parameter
 
 k    = 1   # boundary wavenumber
-Bmax = 25 # boundary amplitude
+Bmax = 20 # boundary amplitude
 
 eta =  10    # free magnetic diffusivity
 chi = -0.1   # magnetic susceptibility
-rho =  5e-3  # electrical resistivity
+rho =  0.01 #5e-3  # electrical resistivity
 
 # Create bases and domain
 x_basis =   de.Fourier('x',nx, interval=(-Lx, Lx), dealias=3/2)
@@ -148,7 +148,7 @@ A.differentiate('y',out=Bx);
 hour = 60*60
 solver.stop_wall_time = 1*hour
 solver.stop_sim_time  = np.inf
-solver.stop_iteration = 2000
+solver.stop_iteration = 5000*4
 
 logger_freq = 100
 output_freq = 100
