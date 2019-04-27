@@ -15,6 +15,8 @@ import matplotlib.pyplot as plt
 from dedalus import public as de
 import h5py
 
+import time
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -23,13 +25,12 @@ matplotlib_logger.setLevel(logging.WARNING)
 
 comm = MPI.COMM_WORLD
 
-ncc_cutoff = 1e-10
-tolerance = 1e-8
+ncc_cutoff = 1e-13 #1e-10
+tolerance = 1e-8 #1e-10
 
 a = 1
 b = 0
 #b = -7/2
-#b = 1
 #b = 1
 
 nz = 512
@@ -41,8 +42,7 @@ gamma = 5/3
 m_ad = 1/(gamma-1)
 m = m_poly
 logger.info("m={}, m_ad = {}, m_poly=(3-{})/(1+{})={}".format(m, m_ad, b, a, m_poly))
-Lz = 0.2 ; Q = 1.5 # works; bigger L or F doesn't
-ε = 1e-4
+ε = 1e-3 #1e-5
 Lz = 2 ; Q = 4/3-ε  # Q=1.33 is the largest that works
 
 tau_0_BB14 = 4e-4*np.array([1e4,1e5,1e6,1e7])*5
@@ -58,6 +58,7 @@ problem.parameters['b'] = b
 problem.parameters['g'] = g = (m+1)
 problem.parameters['Lz'] = Lz
 problem.parameters['gamma'] = gamma
+problem.parameters['ε'] = ε
 problem.parameters['Q'] = Q
 problem.parameters['lnT0'] = lnT0 = 0
 problem.parameters['lnρ0'] = lnρ0 = m*lnT0
@@ -76,7 +77,7 @@ ln_rho = solver.state['ln_rho']
 ln_T.set_scales(domain.dealias)
 ln_rho.set_scales(domain.dealias)
 
-IC = 'polytrope'
+IC = 'isothermal' #'polytrope'
 grad_ln_rho = domain.new_field()
 if IC == 'polytrope':
     import scipy.special as scp
@@ -96,7 +97,7 @@ grad_ln_rho.antidifferentiate('z',('left',lnρ0), out=ln_rho)
 diagnostics = solver.evaluator.add_dictionary_handler(group='diagnostics')
 diagnostics.add_task('1/gamma*dz(ln_T) - (gamma-1)/gamma*dz(ln_rho)',name='dsdz_Cp')
 diagnostics.add_task('1/gamma*ln_T - (gamma-1)/gamma*ln_rho',name='s_Cp')
-diagnostics.add_task('-ρκ(ln_rho,ln_T)', name='dτ')
+diagnostics.add_task('-ρκ(ln_rho,ln_T)/ε', name='dτ')
 diagnostics.add_task('dz(ln_T)/dz(ln_rho)', name='1/m')
 
 # Iterations
@@ -108,6 +109,8 @@ if do_plot:
     fig, ax = plt.subplots()
     ax2 = ax.twinx()
 
+iter = 0
+start_time = time.time()
 try:
     while np.sum(np.abs(pert)) > tolerance and np.sum(np.abs(pert)) < 1e6:
         if do_plot:
@@ -119,9 +122,12 @@ try:
         logger.info('Perturbation norm: {:g}'.format(np.sum(np.abs(pert))))
         logger.info('iterates:  lnρ [{:.3g},{:.3g}]; lnT [{:.3g},{:.3g}]'.format(ln_rho['g'][-1],ln_rho['g'][0], ln_T['g'][-1],ln_T['g'][0]))
         solver.evaluator.evaluate_group("diagnostics")
+        iter += 1
 except:
     plt.show()
     raise
+
+end_time = time.time()
 
 if do_plot:
     ax.plot(z, ln_T['g'], label='lnT')
@@ -129,6 +135,7 @@ if do_plot:
     ax2.plot(z, ln_rho['g'], label='lnrho', linestyle='dashed')
     ax2.set_ylabel("lnrho")
 
+logger.info("converged in {:d} iter and in {:g} seconds".format(iter, end_time-start_time))
 
 brunt2 = domain.new_field()
 brunt2['g'] = diagnostics['dsdz_Cp']['g']*g
@@ -164,6 +171,7 @@ ax2.plot(z, brunt2['g'], color='black', linestyle='dashed')
 ax2.plot(z_phot, brunt2['g'][i_tau_23], marker='o', color='black')
 ax2.set_ylabel(r'$N^2$')
 ax.legend()
+fig.savefig('atmosphere_a{}_b{}_eps{}.png'.format(a,b,ε), dpi=600)
 
 fig = plt.figure()
 ax = fig.add_subplot(2,1,1)
@@ -182,6 +190,7 @@ one_over_m = domain.new_field()
 one_over_m['g'] = diagnostics['1/m']['g']
 one_over_m.set_scales(domain.dealias, keep_data=True)
 ax2.plot(ln_rho['g']+ln_T['g'], one_over_m['g'])
+ax2.axhline(y=1/m, linestyle='dashed', color='black')
 ax2.set_ylabel('1/m')
 
 fig, ax = plt.subplots(nrows=2)
