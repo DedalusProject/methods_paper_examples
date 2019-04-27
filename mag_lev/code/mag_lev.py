@@ -51,10 +51,10 @@ X = Body(Ellipse(a,b,eps),domain,angle=('theta',theta0))
 Rx,Ry,Vx,Vy,M,Mx,My = domain.new_fields(7)
 
 def set_fields():
-    
+
     for f in [Rx,Ry,Vx,Vy,M,Mx,My]:
         f.set_scales(domain.dealias)
-    
+
     Rx['g'], Ry['g'] = X.field(('x', 'y'), domain.dealias)
     Vx['g'], Vy['g'] = X.field(('vx','vy'),domain.dealias)
     Mx['g'], My['g'] = X.field('boundary', domain.dealias)
@@ -137,6 +137,20 @@ snapshots = solver.evaluator.add_file_handler('snapshots', iter=output_freq, max
 snapshots.add_task("A")
 snapshots.add_task("M")
 
+from dedalus.core.field import Scalar
+X0 = Scalar(name='x')
+X1 = Scalar(name='y')
+X2 = Scalar(name='vx')
+X3 = Scalar(name='vy')
+X4 = Scalar(name='theta')
+X5 = Scalar(name='omega')
+snapshots.add_task(X0)
+snapshots.add_task(X1)
+snapshots.add_task(X2)
+snapshots.add_task(X3)
+snapshots.add_task(X4)
+snapshots.add_task(X5)
+
 # Fluid force on object
 force = flow_tools.GlobalFlowProperty(solver, cadence=1)
 force.add_property("(Bx**2 + By**2)*Mx",            name='Fx')
@@ -152,14 +166,20 @@ try:
     start_time = time.time()
     while solver.ok:
         solver.step(dt)
-        
+
         fx  = -chim*force.volume_average('Fx')
         fy  = -chim*force.volume_average('Fy') - gravity
         tz  = -chii*force.volume_average('Tz')
-        
+
         X.step(dt,(fx,fy),tz)
         set_fields()
-        
+        X0.value = X['x']
+        X1.value = X['y']
+        X2.value = X['vx']
+        X3.value = X['vy']
+        X4.value = X['theta']
+        X5.value = X['omega']
+
         if (solver.iteration-1) % logger_freq == 0:
             logger.info('Iteration: %i, Time: %e, dt: %e' %(solver.iteration, solver.sim_time, dt))
             logger.info('    (%7s,%7s,%7s) (%7s,%7s,%7s)'%('fx','fy','tz','x','y','theta'))
@@ -173,4 +193,3 @@ finally:
     logger.info('Sim end time: %f' %solver.sim_time)
     logger.info('Run time: %.2f min.' %(60*run_time))
     logger.info('Run time: %f cpu-hr' %(run_time*domain.dist.comm_cart.size))
-
