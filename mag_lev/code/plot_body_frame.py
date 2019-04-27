@@ -25,8 +25,8 @@ for i in range(4):
         xx, yy = np.meshgrid(x,y)
         for ii in range(len(t)):
             logger.info("file {:s}, frame {:d}".format(filename(i+1),i_frame))
-            ax.pcolormesh(xx.T,yy.T,M[ii,:].T-np.min(M[ii,:]),cmap='Purples')
-            ax.contour(xx.T,yy.T,A[ii,:].T,
+            ax.pcolormesh(x+0*y,y+0*x,M[ii,:]-np.min(M[ii,:]),cmap='Purples')
+            ax.contour(x+0*y,y+0*x,A[ii,:],
                 levels=np.linspace(-Bmax,Bmax,levels),
                 colors=['black'],
                 linewidths=[lw],
