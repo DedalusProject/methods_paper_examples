@@ -13,7 +13,7 @@ from volume_penalty import Body, Ellipse
 
 
 # Time-Space Parameters
-dt, Tstop  =  2.5e-4, 5
+dt, Tstop  =  2.5e-4, 30
 
 output_freq = 100
 logger_freq = 100
@@ -134,8 +134,8 @@ solver.stop_iteration = np.inf
 
 # Analysis
 snapshots = solver.evaluator.add_file_handler('snapshots', iter=output_freq, max_writes=50)
-snapshots.add_task("A")
-snapshots.add_task("M")
+snapshots.add_task("A", scales=4)
+snapshots.add_task("M", scales=4)
 
 from dedalus.core.field import Scalar
 X0 = Scalar(name='x')
@@ -144,12 +144,18 @@ X2 = Scalar(name='vx')
 X3 = Scalar(name='vy')
 X4 = Scalar(name='theta')
 X5 = Scalar(name='omega')
+X6 = Scalar(name='fx')
+X7 = Scalar(name='fy')
+X8 = Scalar(name='tz')
 snapshots.add_task(X0)
 snapshots.add_task(X1)
 snapshots.add_task(X2)
 snapshots.add_task(X3)
 snapshots.add_task(X4)
 snapshots.add_task(X5)
+snapshots.add_task(X6)
+snapshots.add_task(X7)
+snapshots.add_task(X8)
 
 # Fluid force on object
 force = flow_tools.GlobalFlowProperty(solver, cadence=1)
@@ -179,7 +185,10 @@ try:
         X3.value = X['vy']
         X4.value = X['theta']
         X5.value = X['omega']
-
+        X6.value = fx
+        X7.value = fy
+        X8.value = tz
+        
         if (solver.iteration-1) % logger_freq == 0:
             logger.info('Iteration: %i, Time: %e, dt: %e' %(solver.iteration, solver.sim_time, dt))
             logger.info('    (%7s,%7s,%7s) (%7s,%7s,%7s)'%('fx','fy','tz','x','y','theta'))
