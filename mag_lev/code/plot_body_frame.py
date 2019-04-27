@@ -13,10 +13,16 @@ lw=4.5
 levels=12
 
 t = np.array([])
+x_hist = np.array([])
+y_hist = np.array([])
+
 fig, ax = plt.subplots()
 i_frame = 0
 for i in range(4):
     with h5py.File(filename(i+1), 'r') as file:
+        x_hist = np.concatenate((x, file['tasks/x'][:,0,0]))
+        y_hist = np.concatenate((y, file['tasks/y'][:,0,0]))
+
         x = file['scales/x']['1.0'][:]
         y = file['scales/y']['1.0'][:]
         t = file['scales/sim_time'][:]
@@ -31,6 +37,7 @@ for i in range(4):
                 colors=['black'],
                 linewidths=[lw],
                 linestyles=['solid'])
+            ax.plot(x_hist, y_hist, color='slategrey')
             ax.set_aspect('equal')
             ax.axis('off')
             fig.savefig(figname(i_frame))
