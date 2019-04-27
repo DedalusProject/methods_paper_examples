@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Plot settings
-dpi = 300
+dpi = 800
 arc_radius = 0.8
 
 frames = [(1,0,'left'),(5,0,'left'),(9,0,'none'),(13,0,'right'),(16,-1,'right'),]
@@ -29,22 +29,20 @@ def draw_small_multiple(ax, theta, r, c1, c2, c3, time, phi, direction):
     c3_mod[c3[index]>1] = 1
     phi_in = phi[index,0,0]
     colors = tuple(np.array([c1_mod.T.flatten(),c2_mod.T.flatten(),c3_mod.T.flatten()]).transpose().tolist())
-    ax.set_title("t = {:5.1f}".format(time))
+    ax.set_title("t = {:4.1f}".format(time), fontsize=24)
     ax.pcolormesh(theta,r,c1[0,:,:].T,color=colors)
-    ax.annotate("", xy=(phi_in, 0.6), xytext=(phi_in,1.),
-                arrowprops=dict(arrowstyle='-',
-                                connectionstyle='arc3',
-                                linewidth=2))
+    ax.annotate(r"$\phi = {:5.1f} \pi$".format(phi_in/np.pi), xytext=(0,0), xy=(0,0), ha='center',fontsize=20)
+
     if direction == 'left':
         ax.annotate("", xy=(3*np.pi/4., arc_radius), xytext=(np.pi/2,arc_radius),
                     arrowprops=dict(arrowstyle='->',
                                     connectionstyle='arc3,rad={}'.format(0.3),
-                                    linewidth=2))
+                                    linewidth=4))
     elif direction == 'right':
         ax.annotate("", xy=(np.pi/2., arc_radius), xytext=(np.pi/4,arc_radius),
                     arrowprops=dict(arrowstyle='<-',
                                     connectionstyle='arc3,rad={}'.format(0.3),
-                                    linewidth=2))
+                                    linewidth=4))
     else:
         pass
     ax.spines['polar'].set_visible(False)
@@ -60,10 +58,7 @@ fig = plt.figure(figsize=(30,6))
 # Plot writes
 for i,f in enumerate(frames):
     fn, index, direction = f
-    print(fn)
-    print(i)
-    # r = file['scales/r/10']
-    # theta = file['scales/θ/10']
+    print("Plotting frame {:d} of {:d}".format(i+1,len(frames)))
 
     filename = "snapshots/snapshots_s{:d}.h5".format(fn)
     logger.info("Ploting index {:d} from file {:s} with direction {:s}".format(index, filename, direction))
