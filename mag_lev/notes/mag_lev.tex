@@ -1,0 +1,111 @@
+\documentclass[12pt,preprint]{article}
+%\documentclass{jfm}
+\usepackage{latexsym}
+\usepackage{graphicx}
+\usepackage{epsfig}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{epstopdf}
+\usepackage{url}
+\usepackage{float}
+
+\usepackage{tikz}
+\usetikzlibrary{trees}
+
+\parindent 0.0 in
+\parskip 0.05 in
+
+\usepackage[hmargin=2.5cm, vmargin=2.5cm]{geometry} 
+
+\newcommand\Beq{\begin{eqnarray}} 
+\newcommand\Eeq{\end{eqnarray}}
+
+\newcommand{\Eq}[1]{Eq.~(\ref{#1})}
+\newcommand{\Eqs}[2]{Eqs.~(\ref{#1})--(\ref{#2})}
+\newcommand{\eq}[1]{eq.~(\ref{#1})}
+\newcommand{\eqs}[2]{eqs.~(\ref{#1})--(\ref{#2})}
+
+\newcommand{\Prob}[2]{\mathbb{P}[\, #1 \, | \, #2 \, ] }
+\newcommand{\Pro}[1]{\mathbb{P}[\, #1 \, ] }
+
+\newcommand{\inv}[1]{\frac{1}{#1}}
+\newcommand{\pd}[1]{\partial_{#1}}
+
+\newcommand{\Ra}{R}
+\newcommand{\Ve}{\mbox{\textit{Ve}}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\del}{\delta}
+\newcommand{\e}[1]{\eps^{#1}}
+\newcommand{\f}{2\Omega}
+
+\newcommand{\n}{\hat{n}}
+
+
+\newcommand{\dat}{\cdot}
+\newcommand{\dd}[1]{\,\mathrm{d}{#1}}
+\newcommand{\cc}{\mathrm{c.c.}}
+\renewcommand{\vec}[1]{\boldsymbol{#1}}
+\newcommand{\grad}{\nabla}
+\renewcommand{\div}{\nabla \dat}
+\newcommand{\Tr}{\text{Tr}}
+
+
+\newcommand{\pren}[1]{ \left(#1\right) }
+\newcommand{\brac}[1]{\left[\,#1\,\right]}
+
+\newcommand{\ave}[1]{\big<#1\big>}
+
+\renewcommand{\l}{\ell}
+
+\newcommand{\txt}[1]{\quad \text{#1} \quad }
+
+\begin{document}
+
+Magnetic flux density
+\Beq
+\pd{t} B \ = \ - \grad \times E, \quad \div B  \ = \ 0
+\Eeq
+Magnetic field strength and Ohm's Law
+\Beq
+\grad \times H \ = \ J \ = \ \sigma \left( E \ + \ u \times B \right)
+\Eeq
+For a magnetic material 
+\Beq
+E \ = \ - u \times B \ + \ \frac{1}{\sigma} \grad \times H , \quad \quad H \ = \ \frac{1}{\mu} B
+\Eeq
+
+Therefore, the Induction equation 
+\Beq
+\pd{t}B \ = \ \grad \times \left( u \times B \ - \ \frac{1}{\sigma} \grad \times \frac{B}{\mu} \right)
+\Eeq
+We can use a vector potential 
+\Beq
+B \ = \ \grad \times A , \quad \quad
+\pd{t}A \ + \ \grad \phi \ = \   u \times B \ - \ \frac{1}{\sigma} \grad \times \frac{B}{\mu} 
+\Eeq
+In the Column gauge $\div A  \ = \ 0$.
+
+\Beq
+\text{In 2D} \quad \quad B \ = \  \grad \times (A \hat{z}), \quad \quad
+\grad \times \frac{\grad \times (A \hat{z})}{\mu}  \ = \ - \div \left(\frac{1}{\mu} \grad A\right) \hat{z}
+\Eeq
+\Beq
+\pd{t} A \ + \    u \cdot \grad  A  \ = \ \sigma^{-1} \div \left( \mu^{-1} \grad A  \right)
+\Eeq
+
+The Lorenz force 
+\Beq
+\mathcal{F} \ = \ J \times B \ = \ (\grad \times H) \times B 
+\Eeq
+The Maxwell stress
+\Beq
+\Sigma \ \equiv \ \frac{1}{\mu} \left[ B\, B - \frac{|B|^{2}}{2}\, I \right]
+\Eeq
+\Beq
+\mathcal{F} \ = \    \div \Sigma \ + \ \frac{|B|^{2}}{2\mu} \, \grad \log \mu
+\Eeq
+
+
+
+
+\end{document}
