@@ -42,8 +42,8 @@ gamma = 5/3
 m_ad = 1/(gamma-1)
 m = m_poly
 logger.info("m={}, m_ad = {}, m_poly=(3-{})/(1+{})={}".format(m, m_ad, b, a, m_poly))
-ε = 1e-3 #1e-5
-Lz = 2 ; Q = 4/3-ε  # Q=1.33 is the largest that works
+ε = 1e-3
+Lz = 2 ; Q = 1-ε
 
 tau_0_BB14 = 4e-4*np.array([1e4,1e5,1e6,1e7])*5
 F_over_cE_BB14 = 1/4*(np.array([26600, 16300,9300,5200])/38968)**4
@@ -63,7 +63,7 @@ problem.parameters['Q'] = Q
 problem.parameters['lnT0'] = lnT0 = 0
 problem.parameters['lnρ0'] = lnρ0 = m*lnT0
 problem.substitutions['ρκ(ln_rho,ln_T)'] = "exp(ln_rho*(a+1)+ln_T*(b))"
-problem.add_equation("4/3*dz(ln_T) = -Q*exp(ln_rho*(a+1)+ln_T*(b-4))")
+problem.add_equation("dz(ln_T) = -Q*exp(ln_rho*(a+1)+ln_T*(b-4))")
 problem.add_equation("dz(ln_T) + dz(ln_rho) = -g*exp(-ln_T)")
 problem.add_bc("left(ln_T)   = lnT0")
 problem.add_bc("left(ln_rho) = lnρ0")
