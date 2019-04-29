@@ -42,8 +42,8 @@ gamma = 5/3
 m_ad = 1/(gamma-1)
 m = m_poly
 logger.info("m={}, m_ad = {}, m_poly=(3-{})/(1+{})={}".format(m, m_ad, b, a, m_poly))
-ε = 1e-3
-Lz = 2 ; Q = 1-ε
+ε = 0.5 #1e-3
+Lz = 1.5 ; Q = 1-ε
 
 tau_0_BB14 = 4e-4*np.array([1e4,1e5,1e6,1e7])*5
 F_over_cE_BB14 = 1/4*(np.array([26600, 16300,9300,5200])/38968)**4
@@ -149,6 +149,10 @@ dtau.antidifferentiate('z',('right',0), out=tau)
 i_tau_23 = (np.abs(tau['g']-2/3)).argmin()
 z_phot = z[i_tau_23]
 logger.info('photosphere is near z = {} (index {})'.format(z_phot, i_tau_23))
+T_phot = np.exp(ln_T['g'][i_tau_23])
+T_top = np.exp(ln_T.interpolate(z=Lz)['g'][0])
+logger.info('T_phot = {:.3g}, T_top = {:.3g} and T_top/T_phot is {:.3g}'.format(T_phot, T_top, T_top/T_phot))
+
 
 ln_rho_bot = ln_rho.interpolate(z=0)['g'][0]
 ln_rho_top = ln_rho.interpolate(z=Lz)['g'][0]
