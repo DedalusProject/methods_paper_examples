@@ -2,7 +2,7 @@
 Plot output from NLS simulation.
 
 Usage:
-    plot_snapshots.py <files>... [--output=<dir>]
+    graphplot.py <files>... [--output=<dir>]
 
 Options:
     --output=<dir>  Output directory [default: ./frames]
@@ -30,36 +30,16 @@ str_edge = lambda ne: f"{edges[ne][0]}_{edges[ne][1]}"
 str_u = lambda ne: f"u_{str_edge(ne)}"
 str_ux = lambda ne: f"ux_{str_edge(ne)}"
 
-# Plot edges
-def edge_plot(ulist, tlist, title, fname):
-    u_array = np.array(ulist)
-    u_array = np.abs(u_array)**2
-    t_array = np.array(tlist)
-    xmesh, ymesh = quad_mesh(x=x, y=t_array)
-    plt.figure()
-    plt.pcolormesh(xmesh, ymesh, u_array, cmap='RdBu_r')
-    plt.axis(pad_limits(xmesh, ymesh))
-    plt.colorbar()
-    plt.xlabel('x')
-    plt.ylabel('t')
-    plt.title(title)
-    plt.savefig(fname)
-
-# for ne, f_list in enumerate(state_lists):
-#     edge_plot(f_list , t_list, "edge "+str_edge(ne),"./fano_plane/edge_"+str_edge(ne)+".png")
-
-
+# Helper functions
 def build_rotation_matrix(theta):
     return np.array([[np.cos(theta), -np.sin(theta)],
                      [np.sin(theta),  np.cos(theta)]])
-
 
 def build_stretch_matrix(sx, sy=None):
     if sy is None:
         sy = sx
     return np.array([[sx, 0],
                      [0, sy]])
-
 
 def build_line_transform(L, R, sy=None):
     """Build affine transform moving unit interval to (L, R) with sy stretch."""
@@ -75,7 +55,6 @@ def build_line_transform(L, R, sy=None):
     b = np.array(L)
     return A, b
 
-
 def apply_line_transform(x, y, L, R, sy=None):
     """Apply affine line transform."""
     A, b = build_line_transform(L, R, sy)
@@ -83,40 +62,42 @@ def apply_line_transform(x, y, L, R, sy=None):
     Y = A@X + b[:,None]
     return Y[0], Y[1]
 
+# Plotting
+def plot_graph(file, index, axes, amp_stretch):
+    x = file['scales']['x']['1.0'][:]
+    for ne, edge in enumerate(edges):
+        # Load edge solution
+        L = verts[edge[0]]
+        R = verts[edge[1]]
+        u = file['tasks'][str_u(ne)][index]
+        y = np.abs(u) * amp_stretch
+        # Plot symmetric and fill
+        xt, yt = apply_line_transform(x, y, L, R)
+        xb, yb = apply_line_transform(x, -y, L, R)
+        axes.fill(np.concatenate((xt, xb[::-1])), np.concatenate((yt, yb[::-1])), ec='none', fc='k', alpha=0.5)
 
-def graphplot(filename, start, count, output):
-
-    # Parameters
-    dpi = 60
-    title = False
-
-    # Make frames
-    fig = plt.figure(figsize=(10,10))
+def plot_writes(filename, start, count, output, axes=None, save=True, dpi=100, amp_stretch=0.01, title=False):
+    # Make axes if not provided
+    if not axes:
+        fig = plt.figure(figsize=(10,10))
+        axes = fig.add_axes([0, 0, 1, 1])
+    # Loop over assigned writes
     with h5py.File(filename, mode='r') as file:
-        x = file['scales']['x']['1.0'][:]
-        t = file['scales']['sim_time']
         for index in range(start, start+count):
-            axes = fig.add_axes([0.05, 0.05, 0.9, 0.9])
-            for ne, edge in enumerate(edges):
-                # Load edge solution
-                L = verts[edge[0]]
-                R = verts[edge[1]]
-                u = file['tasks'][str_u(ne)][index]
-                y = np.abs(u) * 1e-2
-                # Plot symmetric and fill
-                xt, yt = apply_line_transform(x, y, L, R)
-                xb, yb = apply_line_transform(x, -y, L, R)
-                axes.fill(np.concatenate((xt, xb[::-1])), np.concatenate((yt, yb[::-1])), ec='none', fc='k', alpha=0.5)
-            axes.set_xlim(-1.1, 1.1)
-            axes.set_ylim(-1.1, 1.1)
+            plot_graph(file, index, axes, amp_stretch)
+            # Remove axes
+            axes.set_xlim(-1.2, 1.2)
+            axes.set_ylim(-1.2, 1.2)
             axes.axis('off')
+            # Timestamp title
             if title:
-                fig.suptitle('%.2f' %t[index], fontsize='large')
+                axes.set_title('%.2f' %file['scales']['sim_time'][index], fontsize='large')
             # Save frame
-            savename = 'graph_%06i.png' %file['scales/write_number'][index]
-            savepath = output.joinpath(savename)
-            fig.savefig(str(savepath), dpi=dpi)
-            fig.clear()
+            if save:
+                savename = 'graph_%06i.png' %file['scales/write_number'][index]
+                savepath = output.joinpath(savename)
+                fig.savefig(str(savepath), dpi=dpi)
+            axes.cla()
 
 
 if __name__ == "__main__":
@@ -135,5 +116,5 @@ if __name__ == "__main__":
         if sync.comm.rank == 0:
             if not output_path.exists():
                 output_path.mkdir()
-    post.visit_writes(args['<files>'], graphplot, output=output_path)
+    post.visit_writes(args['<files>'], plot_writes, output=output_path)
 
