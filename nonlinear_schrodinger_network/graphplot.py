@@ -1,23 +1,6 @@
-"""
-Plot output from NLS simulation.
-
-Usage:
-    graphplot.py <files>... [--output=<dir>]
-
-Options:
-    --output=<dir>  Output directory [default: ./frames]
-
-"""
+"""Tools for plotting graph."""
 
 import numpy as np
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-plt.ioff()
-import shutil
-import os
-import pathlib
-import h5py
 
 
 # Load graph
@@ -63,58 +46,18 @@ def apply_line_transform(x, y, L, R, sy=None):
     return Y[0], Y[1]
 
 # Plotting
-def plot_graph(file, index, axes, amp_stretch):
-    x = file['scales']['x']['1.0'][:]
+def plot_graph(file, index, axes, amp_stretch=1, amp_offset=0, lw=0, lc='k', ec='none', fc='k', alpha=0.5):
+    x = file['scales']['x']['2'][:]
     for ne, edge in enumerate(edges):
         # Load edge solution
         L = verts[edge[0]]
         R = verts[edge[1]]
         u = file['tasks'][str_u(ne)][index]
-        y = np.abs(u) * amp_stretch
+        y = np.abs(u) * amp_stretch + amp_offset
         # Plot symmetric and fill
         xt, yt = apply_line_transform(x, y, L, R)
         xb, yb = apply_line_transform(x, -y, L, R)
-        axes.fill(np.concatenate((xt, xb[::-1])), np.concatenate((yt, yb[::-1])), ec='none', fc='k', alpha=0.5)
-
-def plot_writes(filename, start, count, output, axes=None, save=True, dpi=100, amp_stretch=0.01, title=False):
-    # Make axes if not provided
-    if not axes:
-        fig = plt.figure(figsize=(10,10))
-        axes = fig.add_axes([0, 0, 1, 1])
-    # Loop over assigned writes
-    with h5py.File(filename, mode='r') as file:
-        for index in range(start, start+count):
-            plot_graph(file, index, axes, amp_stretch)
-            # Remove axes
-            axes.set_xlim(-1.2, 1.2)
-            axes.set_ylim(-1.2, 1.2)
-            axes.axis('off')
-            # Timestamp title
-            if title:
-                axes.set_title('%.2f' %file['scales']['sim_time'][index], fontsize='large')
-            # Save frame
-            if save:
-                savename = 'graph_%06i.png' %file['scales/write_number'][index]
-                savepath = output.joinpath(savename)
-                fig.savefig(str(savepath), dpi=dpi)
-            axes.cla()
-
-
-if __name__ == "__main__":
-
-    import pathlib
-    from docopt import docopt
-    from dedalus.tools import logging
-    from dedalus.tools import post
-    from dedalus.tools.parallel import Sync
-
-    args = docopt(__doc__)
-
-    output_path = pathlib.Path(args['--output']).absolute()
-    # Create output directory if needed
-    with Sync() as sync:
-        if sync.comm.rank == 0:
-            if not output_path.exists():
-                output_path.mkdir()
-    post.visit_writes(args['<files>'], plot_writes, output=output_path)
+        if lw:
+            axes.plot((L[0], R[0]), (L[1], R[1]), '--', lw=lw, c=lc, dashes=(10, 10))
+        axes.fill(np.concatenate((xt, xb[::-1])), np.concatenate((yt, yb[::-1])), ec=ec, fc=fc, alpha=alpha)
 
