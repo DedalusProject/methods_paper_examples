@@ -13,6 +13,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+plt.ioff()
 import shutil
 import os
 import pathlib
@@ -87,7 +88,6 @@ def graphplot(filename, start, count, output):
 
     # Parameters
     dpi = 60
-    amp_stretch = 0.01
     title = False
 
     # Make frames
@@ -102,10 +102,10 @@ def graphplot(filename, start, count, output):
                 L = verts[edge[0]]
                 R = verts[edge[1]]
                 u = file['tasks'][str_u(ne)][index]
-                y = np.abs(u)
+                y = np.abs(u) * 1e-2
                 # Plot symmetric and fill
-                xt, yt = apply_line_transform(x, y, L, R, amp_stretch)
-                xb, yb = apply_line_transform(x, -y, L, R, amp_stretch)
+                xt, yt = apply_line_transform(x, y, L, R)
+                xb, yb = apply_line_transform(x, -y, L, R)
                 axes.fill(np.concatenate((xt, xb[::-1])), np.concatenate((yt, yb[::-1])), ec='none', fc='k', alpha=0.5)
             axes.set_xlim(-1.1, 1.1)
             axes.set_ylim(-1.1, 1.1)

@@ -32,12 +32,12 @@ Nx = 64
 Lx = 1
 
 # Temporal discretization
-dt = 1e-3
-stop_sim_time = 0.1
+dt = 5e-5
+stop_sim_time = dt * 2000
 timestepper = de.timesteppers.SBDF2
 
 # Output
-save_iter = 1
+save_iter = 10
 
 # Load graph
 with np.load('graph.npz') as graph:
@@ -115,10 +115,13 @@ solver.stop_iteration = np.inf
 def soliton(x, x0, c, k):
     return k * np.exp(1j*c*k*(x-x0)) / np.cosh(k*(x-x0))
 x = domain.grid(0)
-ui = solver.state.fields[0]
-uxi = solver.state.fields[1]
-ui['g'] = soliton(x, Lx/2, 4, 40)
+i = 31
+ui = solver.state.fields[2*i]
+uxi = solver.state.fields[2*i+1]
+Li = lengths[i]
+ui['g'] = soliton(Li*x, Li*Lx/2, 2, 40)
 ui.differentiate('x', out=uxi)
+uxi['g'] /= lengths[i]
 
 # Outputs
 snapshots = solver.evaluator.add_file_handler('snapshots', iter=save_iter, max_writes=1000)
