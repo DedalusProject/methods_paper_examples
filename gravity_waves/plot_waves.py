@@ -8,28 +8,54 @@ with h5py.File('wave_frequencies.h5','r') as infile:
     print("Read {}-frequency sets".format(N))
     ks = infile['/grid'][:]
     brunt = infile['brunt'][()]
+    k_Hρ  = infile['k_Hrho'][()]
+    c_s   = infile['c_s'][()]
 
+Lz = 5
+kz = 2*np.pi/Lz #np.pi/Lz
+ω2_sw = (ks**2 + kz**2 + k_Hρ**2)*c_s**2
+ω2_gw = ks**2/(ks**2 + kz**2 + k_Hρ**2)*brunt**2
+ω_upper = np.sqrt(ω2_sw/2*(1+np.sqrt(1-4*ω2_gw/ω2_sw)))/brunt
+ω_lower = np.sqrt(ω2_sw/2*(1-np.sqrt(1-4*ω2_gw/ω2_sw)))/brunt
+print(ω2_sw/brunt**2)
+print(ω2_gw/brunt**2)
+print(ω_upper)
+print(ω_lower)
+
+print(ks)
+ks /= k_Hρ
+print(ks)
+#freqs /= brunt
+
+c_acoustic = 'lightskyblue'
+c_gravity = 'firebrick'
 fig, ax = plt.subplots(nrows=2, ncols=1)
-for i, k in enumerate(ks):
+for i, k1 in enumerate(ks):
     y = freqs[i]
-    no_conv_mask = np.where(np.abs(y.real)<1e-4)
-    ks = np.array([k]*len(y))
-    ω = np.abs(y.imag)
-    gwaves = np.where(ω <= brunt)
-    acoustic = np.where(ω > brunt)
+    k = np.array([k1]*len(y))
+    oscillatory = np.where(np.abs(y.imag)<1e-2)
+    ω = np.abs(y[oscillatory].real)/brunt
+    gwaves = np.where(ω <= 1)
+    acoustic = np.where(ω > 1)
     #ax.plot(ks, np.abs(y.real), marker='o', linestyle='none')
-    ax[0].plot(ks[acoustic], ω[acoustic], marker='o', linestyle='none')
-    ax[0].plot(ks[gwaves], ω[gwaves], marker='x', linestyle='none')
-    ax[1].plot(ks[acoustic], 1/ω[acoustic], marker='o', linestyle='none')
-    ax[1].plot(ks[gwaves], 1/ω[gwaves], marker='x', linestyle='none')
-ax[0].axhline(y=brunt, linestyle='dashed', color='black')
-ax[1].axhline(y=1/brunt, linestyle='dashed', color='black')
-ax[0].set_xlabel('wavenumber k')
-ax[0].set_ylabel(r'frequency $\omega$')
-ax[0].set_ylim(0,15)
-ax[1].set_xlabel('wavenumber k')
-ax[1].set_ylabel(r'Period $1/\omega$')
-ax[1].set_ylim(0,1/brunt*5.1)
+    ax[0].plot(k[acoustic], ω[acoustic], marker='x', linestyle='none', color=c_acoustic)
+    ax[0].plot(k[gwaves], ω[gwaves], marker='x', linestyle='none', color=c_gravity)
+    ax[1].plot(k[acoustic], 1/ω[acoustic], marker='x', linestyle='none', color=c_acoustic)
+    ax[1].plot(k[gwaves], 1/ω[gwaves], marker='x', linestyle='none', color=c_gravity)
+ax[0].plot(ks, ω_upper, linestyle='dashed')
+ax[0].plot(ks, ω_lower, linestyle='dashed')
+ax[0].axhline(y=1, linestyle='dashed', color='black')
+ax[1].axhline(y=1, linestyle='dashed', color='black')
+ax[0].set_xlabel(r'wavenumber $k/k_{H\rho}$')
+ax[0].set_ylabel(r'frequency $\omega/N$')
+ax[0].set_ylim(0,5)
+#ax[0].set_yscale('log')
+#ax[0].set_ylim(0,15)
+ax[1].set_xlabel(r'wavenumber $k/k_{H\rho}$')
+ax[1].set_ylabel(r'Period $N/\omega$')
+ax[1].set_ylim(0,5.1)
+ax[0].set_xscale('log')
+ax[1].set_xscale('log')
 
 fig.savefig('frequency_spectrum.png', dpi=600)
 plt.show()
