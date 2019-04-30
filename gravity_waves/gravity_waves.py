@@ -9,6 +9,7 @@ import numpy as np
 from mpi4py import MPI
 import matplotlib.pyplot as plt
 from dedalus import public as de
+import time
 
 import logging
 logger = logging.getLogger(__name__)
@@ -32,10 +33,10 @@ Lz = atmosphere_file['Lz'][()]
 gamma = atmosphere_file['gamma'][()]
 atmosphere_file.close()
 
-z_basis = de.Chebyshev('z', nz, interval=(0,Lz))
-
 gamma = 5/3
 
+nz_waves = 128
+z_basis = de.Chebyshev('z', nz_waves, interval=(0,Lz))
 domain_EVP = de.Domain([z_basis], comm=MPI.COMM_SELF)
 waves = de.EVP(domain_EVP, ['u','w','T1','ln_rho1'], eigenvalue='omega')
 
@@ -44,10 +45,12 @@ T0_z = domain_EVP.new_field()
 ln_rho0 = domain_EVP.new_field()
 del_ln_rho0 = domain_EVP.new_field()
 
-T0.set_scales(1)
-T0_z.set_scales(1)
-ln_rho0.set_scales(1)
-del_ln_rho0.set_scales(1)
+scale = nz/nz_waves
+logger.info("data nz ({:d}) is {} times larger than wave nz ({:d})".format(nz,scale,nz_waves))
+T0.set_scales(scale)
+T0_z.set_scales(scale)
+ln_rho0.set_scales(scale)
+del_ln_rho0.set_scales(scale)
 T0['g'].real = np.exp(ln_T)
 T0.differentiate('z', out=T0_z)
 ln_rho0['g'] = ln_rho
@@ -79,6 +82,7 @@ waves.add_bc('left(dz(T1)) = 0')
 
 brunt = np.sqrt(np.max(brunt2))
 
+start_time = time.time()
 EP = Eigenproblem(waves, sparse=False)
 #ks = np.linspace(0.5,10.5,num=50)
 ks = np.logspace(0,1, num=5)
@@ -86,6 +90,7 @@ freqs = []
 for i, k in enumerate(ks):
     EP.EVP.namespace['k'].value = k
     EP.EVP.parameters['k'] = k
+    #EP.solve()
     EP.solve()
     EP.reject_spurious()
     y = EP.evalues_good
@@ -102,6 +107,8 @@ for i, k in enumerate(ks):
             ax2.plot(z, w['g'], label='{:g}'.format(ω.imag))
     ax2.legend(loc='upper left', prop={'size': 6})
     #ax2.axvline(x=z_phot, linestyle='dashed', color='black')
+end_time = time.time()
+logger.info("time to solve all modes: {:g} seconds".format(end_time-start_time))
 
 with h5py.File('wave_frequencies.h5','w') as outfile:
     outfile.create_dataset('grid',data=ks)
