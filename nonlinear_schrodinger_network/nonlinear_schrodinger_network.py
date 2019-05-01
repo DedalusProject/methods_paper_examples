@@ -31,13 +31,22 @@ logger = logging.getLogger(__name__)
 Nx = 64
 Lx = 1
 
+# Initial conditions
+soliton_edge = 53
+soliton_k = 20
+soliton_c = 2
+
 # Temporal discretization
-dt = 1e-3
-stop_sim_time = 0.1
+safety = 0.5
+N_cross = 100
+C = soliton_c * soliton_k
+dt = safety * (1 / Nx) / C
+stop_iteration = int(N_cross / C / dt)
 timestepper = de.timesteppers.SBDF2
 
 # Output
-save_iter = 1
+save_dense_iter = int(1/40 / C / dt)
+save_sparse_iter = int(1/4 / C / dt)
 
 # Load graph
 with np.load('graph.npz') as graph:
@@ -108,22 +117,26 @@ for nv in range(N_vert):
 # Solver
 solver = problem.build_solver(timestepper)
 solver.stop_wall_time = np.inf
-solver.stop_sim_time  = stop_sim_time
-solver.stop_iteration = np.inf
+solver.stop_sim_time  = np.inf
+solver.stop_iteration = stop_iteration
 
 # Initial conditions
 def soliton(x, x0, c, k):
     return k * np.exp(1j*c*k*(x-x0)) / np.cosh(k*(x-x0))
 x = domain.grid(0)
-ui = solver.state.fields[0]
-uxi = solver.state.fields[1]
-ui['g'] = soliton(x, Lx/2, 4, 40)
+ui = solver.state.fields[2*soliton_edge]
+uxi = solver.state.fields[2*soliton_edge+1]
+Li = lengths[soliton_edge]
+ui['g'] = soliton(Li*x, Li*Lx/2, soliton_c, soliton_k)
 ui.differentiate('x', out=uxi)
+uxi['g'] /= Li
 
 # Outputs
-snapshots = solver.evaluator.add_file_handler('snapshots', iter=save_iter, max_writes=1000)
+s1 = solver.evaluator.add_file_handler('snap_dense', iter=save_dense_iter, max_writes=np.inf)
+s2 = solver.evaluator.add_file_handler('snap_sparse', iter=save_sparse_iter, max_writes=np.inf)
 for ne in range(N_edge):
-    snapshots.add_task(str_u(ne))
+    s1.add_task(str_u(ne), scales=domain.dealias)
+    s2.add_task(str_u(ne), scales=domain.dealias)
 
 # Main loop
 try:
