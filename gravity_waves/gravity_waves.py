@@ -35,7 +35,7 @@ atmosphere_file.close()
 
 gamma = 5/3
 
-nz_waves = 64 #256
+nz_waves = 256
 z_basis = de.Chebyshev('z', nz_waves, interval=(0,Lz))
 domain_EVP = de.Domain([z_basis], comm=MPI.COMM_SELF)
 waves = de.EVP(domain_EVP, ['u','w','T1','ln_rho1'], eigenvalue='omega')
@@ -83,12 +83,12 @@ logger.debug("Setting continuity equation")
 waves.add_equation("dt(ln_rho1) + w*del_ln_rho0 + Div_u  = 0 ")
 logger.debug("Setting energy equation")
 waves.add_equation("dt(T1) + w*T0_z + (gamma-1)*T0*Div_u = 0 ")
-waves.add_bc('left(dz(u)) = 0')
-waves.add_bc('right(dz(u)) = 0')
-waves.add_bc('left(dz(T1)) = 0')
-#waves.add_bc('left(w) = 0')
-#waves.add_bc('right(w) = 0')
+#waves.add_bc('left(dz(u)) = 0')
+#waves.add_bc('right(dz(u)) = 0')
 #waves.add_bc('left(dz(T1)) = 0')
+waves.add_bc('left(w) = 0')
+waves.add_bc('right(w) = 0')
+waves.add_bc('left(dz(T1)) = 0')
 
 # value at top of atmosphere in isothermal layer
 brunt = np.sqrt(np.abs(brunt2[-1])) # top in non-field grid
@@ -99,10 +99,15 @@ logger.info("max(brunt) = {}".format(np.sqrt(np.max(brunt2))))
 logger.info("Brunt is |N| = {} and  k_Hρ is {}".format(brunt, k_Hρ))
 start_time = time.time()
 EP = Eigenproblem(waves, sparse=False)
-ks = np.logspace(-1,1, num=10)*k_Hρ
-
+ks = np.logspace(-0.5,1.5, num=10)*k_Hρ
 freqs = []
-eigenfunctions = []
+eigenfunctions = {'w':[], 'u':[]}
+w_weights = []
+KE = domain_EVP.new_field()
+rho0 = domain_EVP.new_field()
+rho0['g'] = np.exp(ln_rho0['g'])
+rho0_avg = (rho0.integrate('z')['g'][0]/Lz).real
+logger.debug("aveage ρ0 = {:g}".format(rho0_avg))
 for i, k in enumerate(ks):
     EP.EVP.namespace['k'].value = k
     EP.EVP.parameters['k'] = k
@@ -110,12 +115,22 @@ for i, k in enumerate(ks):
     EP.reject_spurious()
     ω = EP.evalues_good
     freqs.append(ω)
-    eigenfunctions.append([])
+    eigenfunctions['w'].append([])
+    eigenfunctions['u'].append([])
+    w_weights.append([])
     logger.info("{} good eigenvalues among {} fields".format(EP.evalues_good_index.shape[0], 4))
     for ikk, ik in enumerate(EP.evalues_good_index):
         EP.solver.set_state(ik)
         w = EP.solver.state['w']
-        eigenfunctions[i].append(w['g'])
+        KE['g'] = 0.5*rho0['g']*np.abs(w['g']*w['g'])
+        KE_avg = (KE.integrate('z')['g'][0]/Lz).real
+        weight = np.sqrt(KE_avg/(0.5*rho0_avg))
+        eigenfunctions['w'][i].append(np.copy(w['g'])/weight)
+        u = EP.solver.state['u']
+        KE['g'] = 0.5*rho0['g']*np.abs(u['g']*u['g'])
+        KE_avg = (KE.integrate('z')['g'][0]/Lz).real
+        weight = np.sqrt(KE_avg/(0.5*rho0_avg))
+        eigenfunctions['u'][i].append(np.copy(u['g'])/weight)
 
 end_time = time.time()
 logger.info("time to solve all modes: {:g} seconds".format(end_time-start_time))
@@ -125,9 +140,13 @@ with h5py.File('wave_frequencies.h5','w') as outfile:
     outfile.create_dataset('grid',data=ks)
     for i, freq in enumerate(freqs):
         outfile.create_dataset('freq_{}'.format(i),data=freq)
-        outfile.create_dataset('w_{}'.format(i),data=eigenfunctions[i])
+        outfile.create_dataset('w_{}'.format(i),data=eigenfunctions['w'][i])
+        outfile.create_dataset('u_{}'.format(i),data=eigenfunctions['u'][i])
     outfile.create_dataset('brunt', data=brunt)
     outfile.create_dataset('k_Hrho',  data=k_Hρ)
     outfile.create_dataset('c_s',   data=c_s)
+    outfile.create_dataset('z',   data=z)
+    outfile.create_dataset('Lz',  data=Lz)
+    outfile.create_dataset('rho0', data=rho0['g'])
 
 plt.show()

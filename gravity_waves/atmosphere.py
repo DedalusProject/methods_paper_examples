@@ -25,8 +25,8 @@ matplotlib_logger.setLevel(logging.WARNING)
 
 comm = MPI.COMM_WORLD
 
-ncc_cutoff = 1e-13 #1e-10
-tolerance = 1e-8 #1e-10
+ncc_cutoff = 1e-13
+tolerance = 1e-8
 
 a = 1
 b = 0
@@ -42,8 +42,17 @@ gamma = 5/3
 m_ad = 1/(gamma-1)
 m = m_poly
 logger.info("m={}, m_ad = {}, m_poly=(3-{})/(1+{})={}".format(m, m_ad, b, a, m_poly))
-ε = 0.5 #1e-3
+
+fudge_factor = 1.25
+ln_Teff = -2
+f = 1/3
+q = 2/3
+τ0 = 4*f*np.exp(-4*ln_Teff*fudge_factor) - q
+ε = q/τ0
+
 Lz = 1.5 ; Q = 1-ε
+
+logger.info("Target atmosphere has ln_Teff = {} and τ0 = {:g} for ε = {:g}".format(ln_Teff, τ0, ε))
 
 tau_0_BB14 = 4e-4*np.array([1e4,1e5,1e6,1e7])*5
 F_over_cE_BB14 = 1/4*(np.array([26600, 16300,9300,5200])/38968)**4
@@ -146,17 +155,19 @@ tau = domain.new_field()
 tau.set_scales(domain.dealias)
 dtau['g'] = diagnostics['dτ']['g']
 dtau.antidifferentiate('z',('right',0), out=tau)
-i_tau_23 = (np.abs(tau['g']-2/3)).argmin()
+i_tau_23 = (np.abs(tau['g']-q)).argmin()
 z_phot = z[i_tau_23]
 logger.info('photosphere is near z = {} (index {})'.format(z_phot, i_tau_23))
-T_phot = np.exp(ln_T['g'][i_tau_23])
-T_top = np.exp(ln_T.interpolate(z=Lz)['g'][0])
-logger.info('T_phot = {:.3g}, T_top = {:.3g} and T_top/T_phot is {:.3g}'.format(T_phot, T_top, T_top/T_phot))
-
+ln_T_phot = ln_T['g'][i_tau_23]
+ln_T_top = ln_T.interpolate(z=Lz)['g'][0]
+logger.info('ln_T_phot = {:.3g}, ln_T_top = {:.3g} and ln_T_top - ln_T_phot = {:.3g}'.format(ln_T_phot, ln_T_top, ln_T_top-ln_T_phot))
+logger.info('T_phot = {:.3g}, T_top = {:.3g} and T_top/T_phot = {:.3g}'.format(np.exp(ln_T_phot), np.exp(ln_T_top), np.exp(ln_T_top-ln_T_phot)))
 
 ln_rho_bot = ln_rho.interpolate(z=0)['g'][0]
 ln_rho_top = ln_rho.interpolate(z=Lz)['g'][0]
-logger.info("n_rho = {}".format(ln_rho_bot - ln_rho_top))
+logger.info("n_rho = {:.3g}".format(ln_rho_bot - ln_rho_top))
+
+
 fig = plt.figure()
 ax = fig.add_subplot(2,1,1)
 ax.plot(z, ln_T['g'], label='T')
