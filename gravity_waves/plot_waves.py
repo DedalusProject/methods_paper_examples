@@ -3,19 +3,25 @@ import numpy as np
 import h5py
 
 with h5py.File('wave_frequencies.h5','r') as infile:
-    freqs = [k.value for k in infile.values() if 'freq' in k.name]
-    eigs_w  = [k.value for k in infile.values() if 'w_' in k.name]
-    eigs_u  = [k.value for k in infile.values() if 'u_' in k.name]
+    freqs = []
+    eigs_w = []
+    eigs_u = []
+    for k_i in infile['tasks']:
+        freqs.append(infile['tasks'][k_i]['freq'][:])
+        eigs_w.append(infile['tasks'][k_i]['eig_w'][:])
+        eigs_u.append(infile['tasks'][k_i]['eig_u'][:])
+    ks = infile['scales']['grid'][:]
+    brunt = infile['scales']['brunt'][()]
+    k_Hρ  = infile['scales']['k_Hρ'][()]
+    c_s   = infile['scales']['c_s'][()]
+    z = infile['scales']['z'][:]
+    rho0 = infile['scales']['rho0'][:]
+    Lz = infile['scales']['Lz'][()]
+
     N = len(freqs)
     print("Read {}-frequency sets".format(N))
-    ks = infile['/grid'][:]
-    brunt = infile['brunt'][()]
-    k_Hρ  = infile['k_Hrho'][()]
-    c_s   = infile['c_s'][()]
-    z = infile['z'][:]
-    rho0 = infile['rho0'][:]
 
-Lz = 1.5 - 0.91 #1.5
+#Lz = 1.5 - 0.91 #1.5
 kz = 2*np.pi/Lz #np.pi/Lz
 ω2_sw = (ks**2 + kz**2 + k_Hρ**2)*c_s**2
 ω2_gw = ks**2/(ks**2 + kz**2 + k_Hρ**2)*brunt**2
@@ -30,7 +36,7 @@ fig, ax = plt.subplots(nrows=2, ncols=1)
 for i, k1 in enumerate(ks):
     y = freqs[i]
     k = np.array([k1]*len(y))
-    oscillatory = np.where(np.abs(y.imag)<1e-2)
+    oscillatory = np.where(np.abs(y.imag)<1e-8)
     ω = np.abs(y[oscillatory].real)/brunt
     gwaves = np.where(ω <= ω_lower[i])
     acoustic = np.where(ω > ω_lower[i])
@@ -39,7 +45,7 @@ for i, k1 in enumerate(ks):
     ax[0].plot(k[gwaves], ω[gwaves], marker='x', linestyle='none', color=c_gravity)
     ax[1].plot(k[acoustic], 1/ω[acoustic], marker='x', linestyle='none', color=c_acoustic)
     ax[1].plot(k[gwaves], 1/ω[gwaves], marker='x', linestyle='none', color=c_gravity)
-    if i == 0: #3:
+    if i == 6: #3:
          fig_eig, ax_eig = plt.subplots(nrows=3)
          i_sort = np.argsort(ω)
          P = 1/ω[i_sort]
@@ -47,7 +53,7 @@ for i, k1 in enumerate(ks):
          w = eigs_w[i][i_sort,:]
          u = eigs_u[i][i_sort,:]
          gw = -10
-         ac = 30
+         ac = 10
          mix = 1
          weight = np.sqrt(rho0)
          ax_eig[0].plot(z, weight*w[i_brunt+gw,:])
@@ -67,7 +73,7 @@ for i, k1 in enumerate(ks):
          ax[1].plot(k[0], P[i_brunt+mix], marker='o', color='black', alpha=0.2, markersize=10)
          ax[1].plot(k[0], P[i_brunt+ac], marker='o', color='black', alpha=0.2, markersize=10)
 
-#ax[0].plot(ks, ω_upper, linestyle='dashed')
+ax[0].plot(ks, ω_upper, linestyle='dashed')
 ax[0].plot(ks, ω_lower, linestyle='dashed')
 ax[0].axhline(y=1, linestyle='dashed', color='black')
 ax[1].axhline(y=1, linestyle='dashed', color='black')
