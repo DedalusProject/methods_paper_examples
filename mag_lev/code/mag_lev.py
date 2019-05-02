@@ -19,7 +19,7 @@ output_freq = 100
 logger_freq = 100
 
 Lx, Ly     =  4., 4.
-nx, ny     =  512, 512
+nx, ny     =  1024, 512
 
 # Initial body angle; inital x,y = domain centre, not moving.
 theta0 = np.pi/6
@@ -33,7 +33,7 @@ a,b = 2, 1 # ellipse semimajor/semiminor axes
 
 eps = 0.025 # smoothing parameter
 
-k    = 1   # boundary wavenumber
+k    = 0.5   # boundary wavenumber
 Bmax = 20 # boundary amplitude
 
 eta =  10    # free magnetic diffusivity
@@ -41,12 +41,12 @@ chi = -0.1   # magnetic susceptibility
 rho =  1e-2  # electrical resistivity
 
 # Create bases and domain
-x_basis =   de.Fourier('x',nx, interval=(-Lx, Lx), dealias=3/2)
+x_basis =   de.Fourier('x',nx, interval=(-Lx, 3*Lx), dealias=3/2)
 y_basis = de.Chebyshev('y',ny, interval=(-Ly, Ly), dealias=3/2)
 domain  = de.Domain([x_basis, y_basis], grid_dtype=np.float64)
 
 # Create solid body
-X = Body(Ellipse(a,b,eps),domain,angle=('theta',theta0))
+X = Body(Ellipse(a,b,eps),domain,position=(('x','y'),[0,0]),angle=('theta',theta0))
 
 Rx,Ry,Vx,Vy,M,Mx,My = domain.new_fields(7)
 
@@ -69,8 +69,8 @@ set_fields()
 # Create inital and fixed boundary field
 
 def Harmonic(amplitude,wavennumber,phase=0):
-    a,b = domain.bases[0].interval
-    k = 2*np.pi*wavennumber/(b-a)
+    a,b = -2,+2
+    k = 2.0*np.pi*wavennumber/(b-a)
     A = amplitude/k
     x,y = domain.grids(domain.dealias)
     y0  = domain.bases[1].interval[0]
@@ -127,15 +127,14 @@ A['g'] = A0['g']*(1-M['g']) # Initial expelled flux
 A.differentiate('y',out=Bx);
 
 # Integration parameters
-hour = 60*60
-solver.stop_wall_time = 1*hour
+solver.stop_wall_time = np.inf
 solver.stop_sim_time  = Tstop
 solver.stop_iteration = np.inf
 
 # Analysis
 snapshots = solver.evaluator.add_file_handler('snapshots', iter=output_freq, max_writes=50)
-snapshots.add_task("A", scales=4)
-snapshots.add_task("M", scales=4)
+snapshots.add_task("A")
+snapshots.add_task("M")
 
 from dedalus.core.field import Scalar
 X0 = Scalar(name='x')
@@ -188,7 +187,7 @@ try:
         X6.value = fx
         X7.value = fy
         X8.value = tz
-        
+
         if (solver.iteration-1) % logger_freq == 0:
             logger.info('Iteration: %i, Time: %e, dt: %e' %(solver.iteration, solver.sim_time, dt))
             logger.info('    (%7s,%7s,%7s) (%7s,%7s,%7s)'%('fx','fy','tz','x','y','theta'))
@@ -197,7 +196,7 @@ except:
     logger.error('Exception raised, triggering end of main loop.')
     raise
 finally:
-    run_time = (time.time() - start_time)/hour
+    run_time = (time.time() - start_time)/(60*60)
     logger.info('Iterations: %i' %solver.iteration)
     logger.info('Sim end time: %f' %solver.sim_time)
     logger.info('Run time: %.2f min.' %(60*run_time))
