@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 dpi = 800
 arc_radius = 0.8
 
-frames = [(1,0,'left'),(5,0,'left'),(9,0,'none'),(13,0,'right'),(16,-1,'right'),]
+frames = [(1,0,'left'),(5,0,'left'),(9,0,'none'),(13,0,'right'),(17,0,'right'),]
 outfile = 'stokes_flow_figure.png'
 
 def draw_small_multiple(ax, theta, r, c1, c2, c3, time, phi, direction):
