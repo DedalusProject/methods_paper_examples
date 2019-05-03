@@ -45,28 +45,36 @@ for i, k1 in enumerate(ks):
     ax[0].plot(k[gwaves], ω[gwaves], marker='x', linestyle='none', color=c_gravity)
     ax[1].plot(k[acoustic], 1/ω[acoustic], marker='x', linestyle='none', color=c_acoustic)
     ax[1].plot(k[gwaves], 1/ω[gwaves], marker='x', linestyle='none', color=c_gravity)
-    if i == 6: #3:
+    target_k = 2
+    i_k = np.argmin(np.abs(ks-target_k))
+    if i == i_k:
          fig_eig, ax_eig = plt.subplots(nrows=3)
          i_sort = np.argsort(ω)
          P = 1/ω[i_sort]
          i_brunt = np.argmin(np.abs(P-1/ω_lower[i]))
          w = eigs_w[i][i_sort,:]
          u = eigs_u[i][i_sort,:]
-         gw = -10
-         ac = 10
+         gw = -5
+         ac = 5
          mix = 1
          weight = np.sqrt(rho0)
-         ax_eig[0].plot(z, weight*w[i_brunt+gw,:])
-         ax_eig[1].plot(z, weight*w[i_brunt+mix,:])
-         ax_eig[2].plot(z, weight*w[i_brunt+ac,:])
+         ax_eig[0].plot(z, weight*w[i_brunt+gw,:].real)
+         ax_eig[1].plot(z, weight*w[i_brunt+mix,:].real)
+         ax_eig[2].plot(z, weight*w[i_brunt+ac,:].real)
+         ax_eig[0].plot(z, weight*w[i_brunt+gw,:].imag)
+         ax_eig[1].plot(z, weight*w[i_brunt+mix,:].imag)
+         ax_eig[2].plot(z, weight*w[i_brunt+ac,:].imag)
          for axR in ax_eig:
              axR.set_ylabel(r'$\sqrt{\rho}w$')
          ax_eig_L = []
          for axR in ax_eig:
             ax_eig_L.append(axR.twinx())
-         ax_eig_L[0].plot(z, weight*u[i_brunt+gw,:], linestyle='dashed')
-         ax_eig_L[1].plot(z, weight*u[i_brunt+mix,:], linestyle='dashed')
-         ax_eig_L[2].plot(z, weight*u[i_brunt+ac,:], linestyle='dashed')
+         ax_eig_L[0].plot(z, weight*u[i_brunt+gw,:].real, linestyle='dashed')
+         ax_eig_L[1].plot(z, weight*u[i_brunt+mix,:].real, linestyle='dashed')
+         ax_eig_L[2].plot(z, weight*u[i_brunt+ac,:].real, linestyle='dashed')
+         ax_eig_L[0].plot(z, weight*u[i_brunt+gw,:].imag, linestyle='dashed')
+         ax_eig_L[1].plot(z, weight*u[i_brunt+mix,:].imag, linestyle='dashed')
+         ax_eig_L[2].plot(z, weight*u[i_brunt+ac,:].imag, linestyle='dashed')
          for axL in ax_eig_L:
              axL.set_ylabel(r'$\sqrt{\rho}u$')
          ax[1].plot(k[0], P[i_brunt+gw], marker='o', color='black', alpha=0.2, markersize=10)
