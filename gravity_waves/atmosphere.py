@@ -44,13 +44,13 @@ m = m_poly
 logger.info("m={}, m_ad = {}, m_poly=(3-{})/(1+{})={}".format(m, m_ad, b, a, m_poly))
 
 fudge_factor = 1.25
-ln_Teff = -2
+ln_Teff = -1
 f = 1/3
 q = 2/3
 τ0 = 4*f*np.exp(-4*ln_Teff*fudge_factor) - q
 ε = q/τ0
 
-Lz = 1.5 ; Q = 1-ε
+Lz = 2 ; Q = 1-ε
 
 logger.info("Target atmosphere has ln_Teff = {} and τ0 = {:g} for ε = {:g}".format(ln_Teff, τ0, ε))
 
@@ -198,6 +198,14 @@ ax2 = ax.twinx()
 ax2.plot(z, tau['g'], linestyle='dashed')
 ax = fig.add_subplot(2,1,2)
 ax.plot(ln_rho['g']+ln_T['g'], ln_T['g'], label=r'$\ln T$', linestyle='dashed')
+lnP = np.linspace(-12, 0)
+
+ln_T_top_analytic = 1/(4*fudge_factor)*np.log(ε/(1+ε))
+print("ln_T_top: {:g} and analytic {:g}".format(ln_T_top, ln_T_top_analytic))
+ax.plot(lnP,
+        np.log((Q*np.exp(lnP*(1+a)) + np.exp(ln_T_top_analytic*(4+1-b)))**(1/(4+a-b))),
+        linestyle='dashed')
+
 ax.set_ylabel(r'$\ln T$')
 ax.set_xlabel(r'$\ln P$')
 ax2 = ax.twinx()
