@@ -12,7 +12,7 @@ size = MPI.COMM_WORLD.size
 matplotlib.rcParams.update(publication_settings.params)
 
 t_mar, b_mar, l_mar, r_mar = (0.05, 0.05, 0.05, 0.05)
-h_slice, w_slice = (1., 1.)
+h_slice, w_slice = (1., 2.)
 
 h_total = t_mar + h_slice + b_mar
 w_total = l_mar + w_slice + r_mar
@@ -35,10 +35,10 @@ Bmin = 4
 
 filename = lambda s: 'snapshots/snapshots_s{:d}.h5'.format(s)
 figname =  lambda s: 'frames/frames_{:06d}.png'.format(s)
-lw=4.5
+lw=2
 levels=6
 
-for i in range(rank,15,size):
+for i in range(rank,14,size):
     x_hist = np.array([])
     y_hist = np.array([])
     t = np.array([])
@@ -48,8 +48,8 @@ for i in range(rank,15,size):
         y_hist = np.concatenate((y_hist, f['tasks/y'][:,0,0]))
     with h5py.File(filename(i+1), 'r') as file:
 
-        x = file['scales/x']['4'][:]
-        y = file['scales/y']['4'][:]
+        x = file['scales/x']['1.0'][:]
+        y = file['scales/y']['1.0'][:]
         t = file['scales/sim_time'][:]
         A = file['tasks/A'][:]
         M = file['tasks/M'][:]
@@ -67,7 +67,7 @@ for i in range(rank,15,size):
                   colors=['black'],
                   linewidths=[lw],
                   linestyles=['solid'])
-            axis.plot(x_hist[:i_frame], y_hist[:i_frame], color='slategrey')
+            axis.plot(x_hist[:i_frame], y_hist[:i_frame], color='slategrey', linewidth=lw)
             axis.axis('off')
             fig.savefig(figname(i_frame),dpi=300)
             axis.clear()
