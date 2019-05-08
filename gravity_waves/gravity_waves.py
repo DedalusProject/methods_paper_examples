@@ -35,7 +35,7 @@ atmosphere_file.close()
 
 gamma = 5/3
 
-nz_waves = 512
+nz_waves = 128 #256 produces good results
 z_basis = de.Chebyshev('z', nz_waves, interval=(0,Lz))
 domain_EVP = de.Domain([z_basis], comm=MPI.COMM_SELF)
 waves = de.EVP(domain_EVP, ['u','w','T1','ln_rho1'], eigenvalue='omega')
@@ -101,7 +101,7 @@ start_time = time.time()
 EP = Eigenproblem(waves)
 ks = np.logspace(-1,2, num=20)*k_Hρ
 freqs = []
-eigenfunctions = {'w':[], 'u':[]}
+eigenfunctions = {'w':[], 'u':[], 'T':[]}
 w_weights = []
 KE = domain_EVP.new_field()
 rho0 = domain_EVP.new_field()
@@ -119,6 +119,7 @@ for i, k in enumerate(ks):
     freqs.append(ω)
     eigenfunctions['w'].append([])
     eigenfunctions['u'].append([])
+    eigenfunctions['T'].append([])
     w_weights.append([])
     logger.info("k={:g} ; {:d} good eigenvalues among {:d} fields ({:g}%)".format(k, EP.evalues_good_index.shape[0], 4, EP.evalues_good_index.shape[0]/(4*nz_waves)*100))
     for ikk, ik in enumerate(EP.evalues_good_index):
@@ -133,6 +134,13 @@ for i, k in enumerate(ks):
         KE_avg = (KE.integrate('z')['g'][0]/Lz).real
         weight = np.sqrt(KE_avg/(0.5*rho0_avg))
         eigenfunctions['u'][i].append(np.copy(u['g'])/weight)
+        T = EP.solver.state['T1']
+        KE['g'] = rho0['g']*(T['g'])
+        KE_avg = (KE.integrate('z')['g'][0]/Lz).real
+        weight = KE_avg/rho0_avg
+        eigenfunctions['T'][i].append(np.copy(T['g'])/weight)
+
+
 ax.set_xscale('log')
 end_time = time.time()
 logger.info("time to solve all modes: {:g} seconds".format(end_time-start_time))
@@ -156,5 +164,6 @@ with h5py.File('wave_frequencies.h5','w') as outfile:
         data_group.create_dataset('freq',data=freq)
         data_group.create_dataset('eig_w',data=eigenfunctions['w'][i])
         data_group.create_dataset('eig_u',data=eigenfunctions['u'][i])
+        data_group.create_dataset('eig_T',data=eigenfunctions['T'][i])        
     outfile.close()
 plt.show()

@@ -6,10 +6,12 @@ with h5py.File('wave_frequencies.h5','r') as infile:
     freqs = []
     eigs_w = []
     eigs_u = []
+    eigs_T = []
     for k_i in infile['tasks']:
         freqs.append(infile['tasks'][k_i]['freq'][:])
         eigs_w.append(infile['tasks'][k_i]['eig_w'][:])
         eigs_u.append(infile['tasks'][k_i]['eig_u'][:])
+        eigs_T.append(infile['tasks'][k_i]['eig_T'][:])
     ks = infile['scales']['grid'][:]
     brunt = infile['scales']['brunt'][()]
     k_Hρ  = infile['scales']['k_Hρ'][()]
@@ -54,29 +56,42 @@ for i, k1 in enumerate(ks):
          i_brunt = np.argmin(np.abs(P-1/ω_lower[i]))
          w = eigs_w[i][i_sort,:]
          u = eigs_u[i][i_sort,:]
-         gw = -5
-         ac = 5
+         T = eigs_T[i][i_sort,:]
+         gw = -20
+         ac = 20
          mix = 1
          weight = np.sqrt(rho0)
-         ax_eig[0].plot(z, weight*w[i_brunt+gw,:].real)
-         ax_eig[1].plot(z, weight*w[i_brunt+mix,:].real)
-         ax_eig[2].plot(z, weight*w[i_brunt+ac,:].real)
-         ax_eig[0].plot(z, weight*w[i_brunt+gw,:].imag)
-         ax_eig[1].plot(z, weight*w[i_brunt+mix,:].imag)
-         ax_eig[2].plot(z, weight*w[i_brunt+ac,:].imag)
+         wc = 'steelblue'
+         ax_eig[0].plot(z, weight*w[i_brunt+gw,:].real, color=wc)
+         ax_eig[1].plot(z, weight*w[i_brunt+mix,:].real, color=wc)
+         ax_eig[2].plot(z, weight*w[i_brunt+ac,:].real, color=wc)
+         ax_eig[0].plot(z, weight*w[i_brunt+gw,:].imag, linestyle='dashed', color=wc)
+         ax_eig[1].plot(z, weight*w[i_brunt+mix,:].imag, linestyle='dashed', color=wc)
+         ax_eig[2].plot(z, weight*w[i_brunt+ac,:].imag, linestyle='dashed', color=wc)
          for axR in ax_eig:
-             axR.set_ylabel(r'$\sqrt{\rho}w$')
+             axR.set_ylabel(r'$\sqrt{\rho}w,\,\sqrt{\rho}u$')
          ax_eig_L = []
          for axR in ax_eig:
             ax_eig_L.append(axR.twinx())
-         ax_eig_L[0].plot(z, weight*u[i_brunt+gw,:].real, linestyle='dashed')
-         ax_eig_L[1].plot(z, weight*u[i_brunt+mix,:].real, linestyle='dashed')
-         ax_eig_L[2].plot(z, weight*u[i_brunt+ac,:].real, linestyle='dashed')
-         ax_eig_L[0].plot(z, weight*u[i_brunt+gw,:].imag, linestyle='dashed')
-         ax_eig_L[1].plot(z, weight*u[i_brunt+mix,:].imag, linestyle='dashed')
-         ax_eig_L[2].plot(z, weight*u[i_brunt+ac,:].imag, linestyle='dashed')
+         uc = 'seagreen'
+         ax_eig[0].plot(z, weight*u[i_brunt+gw,:].real, color=uc)
+         ax_eig[1].plot(z, weight*u[i_brunt+mix,:].real, color=uc)
+         ax_eig[2].plot(z, weight*u[i_brunt+ac,:].real, color=uc)
+         ax_eig[0].plot(z, weight*u[i_brunt+gw,:].imag, linestyle='dashed', color=uc)
+         ax_eig[1].plot(z, weight*u[i_brunt+mix,:].imag, linestyle='dashed', color=uc)
+         ax_eig[2].plot(z, weight*u[i_brunt+ac,:].imag, linestyle='dashed', color=uc)
+
+         #weight = rho0
+         Tc = 'firebrick'
+         ax_eig_L[0].plot(z, weight*T[i_brunt+gw,:].real, color=Tc)
+         ax_eig_L[1].plot(z, weight*T[i_brunt+mix,:].real, color=Tc)
+         ax_eig_L[2].plot(z, weight*T[i_brunt+ac,:].real, color=Tc)
+         ax_eig_L[0].plot(z, weight*T[i_brunt+gw,:].imag, linestyle='dashed', color=Tc)
+         ax_eig_L[1].plot(z, weight*T[i_brunt+mix,:].imag, linestyle='dashed', color=Tc)
+         ax_eig_L[2].plot(z, weight*T[i_brunt+ac,:].imag, linestyle='dashed', color=Tc)
+
          for axL in ax_eig_L:
-             axL.set_ylabel(r'$\sqrt{\rho}u$')
+             axL.set_ylabel(r'$\rho T$')
          ax[1].plot(k[0], P[i_brunt+gw], marker='o', color='black', alpha=0.2, markersize=10)
          ax[1].plot(k[0], P[i_brunt+mix], marker='o', color='black', alpha=0.2, markersize=10)
          ax[1].plot(k[0], P[i_brunt+ac], marker='o', color='black', alpha=0.2, markersize=10)
