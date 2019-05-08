@@ -7,20 +7,29 @@ import time
 
 logger = logging.getLogger(__name__)
 
+## Nondimensionalize using
+# U --> inner cylinder velocity
+# L --> gap width R_2 - R_1
+#
+# This leaves one parameter, Pe, the Peclet number associated with mass diffusion
+
 # parameters
 nr = 512
 nθ = 512
+Pe = 1e6
+
+# Geometry
 R_in = 1
 R_out = 2
 
-ν = 10.
-κ = 1e-5
-ampl = 1.
+logger.info("nr: {:d} nθ: {:d}".format(nr, nθ))
+logger.info("Peclet number for diffusion = {:e}".format(Pe))
+
 delta = 0.02
 nrot = 8 # four turns clockwise, four turns counterclockwise
 
 # inner rotation periods
-T_inner = 2*np.pi*R_in/ampl
+T_inner = 2*np.pi*R_in
 
 # run control
 # exploit fixed timesteps to ensure integer multiples of inner cylinder period
@@ -40,10 +49,9 @@ def SquareBoundaryForcing(*args):
 
     """
     t = args[0].value # time
-    ampl = args[1].value # max velocity
-    delta = args[2].value # arctan width
-    nrot = args[3].value # total number of rotations
-    time_signal = (ampl/np.arctan(1/delta))*np.arctan(np.sin(t/nrot)/delta)
+    delta = args[1].value # arctan width
+    nrot = args[2].value # total number of rotations
+    time_signal = (1./np.arctan(1/delta))*np.arctan(np.sin(t/nrot)/delta)
     return time_signal
 
 def Forcing(*args, domain=domain, F=SquareBoundaryForcing):
@@ -53,9 +61,7 @@ de.operators.parseables['Vr'] = Forcing
 
 problem = de.IVP(domain, variables=['φ','u', 'v', 'p', 'ur', 'vr', 'c1', 'c2', 'c3', 'c1r', 'c2r', 'c3r'])
 
-problem.parameters['ν'] = ν
-problem.parameters['κ'] = κ
-problem.parameters['ampl'] = ampl
+problem.parameters['Pe'] = Pe
 problem.parameters['delta'] = delta
 problem.parameters['nrot'] = nrot
 problem.parameters['R_in'] = R_in
@@ -67,16 +73,16 @@ problem.substitutions['Lap_θ'] = "Lap_s(v, vr) - v + 2*dθ(u)"
 problem.substitutions['UdotGrad_s(f, f_r)'] = "r*r*u*f_r + r*v*dθ(f)"
 
 # Stokes Flow
-problem.add_equation('r*r*dr(p) - ν*Lap_r = 0')
-problem.add_equation('r*r*dθ(p) - ν*Lap_θ = 0')
+problem.add_equation('r*r*dr(p) - Lap_r = 0')
+problem.add_equation('r*r*dθ(p) - Lap_θ = 0')
 
 # Incompressibility
 problem.add_equation('r*ur + u + dθ(v) = 0')
 
 # dye equations
-problem.add_equation('r*r*dt(c1) - κ*Lap_s(c1, c1r) = -UdotGrad_s(c1, c1r)')
-problem.add_equation('r*r*dt(c2) - κ*Lap_s(c2, c2r) = -UdotGrad_s(c2, c2r)')
-problem.add_equation('r*r*dt(c3) - κ*Lap_s(c3, c3r) = -UdotGrad_s(c3, c3r)')
+problem.add_equation('r*r*dt(c1) - Lap_s(c1, c1r)/Pe = -UdotGrad_s(c1, c1r)')
+problem.add_equation('r*r*dt(c2) - Lap_s(c2, c2r)/Pe = -UdotGrad_s(c2, c2r)')
+problem.add_equation('r*r*dt(c3) - Lap_s(c3, c3r)/Pe = -UdotGrad_s(c3, c3r)')
 
 # First order
 problem.add_equation('dr(u) - ur = 0')
@@ -89,8 +95,7 @@ problem.add_equation('dr(c3) - c3r = 0')
 problem.add_equation('dt(φ) - v/R_in = 0')
 
 # boundary conditions
-#problem.add_bc('left(v) = ampl')
-problem.add_bc('left(v) = left(Vr(t, ampl, delta, nrot))')
+problem.add_bc('left(v) = left(Vr(t, delta, nrot))')
 problem.add_bc('right(v) = 0')
 
 problem.add_bc('left(u) = 0')
