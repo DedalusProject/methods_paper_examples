@@ -16,7 +16,11 @@ logger = logging.getLogger(__name__)
 # parameters
 nr = 512
 nθ = 512
-Pe = 1e6
+Pe = 1e7 # if this is set to np.inf, mass diffusion will be switched off
+if Pe is np.inf:
+    finite_pe = False
+else:
+    finite_pe = True
 
 # Geometry
 R_in = 1
@@ -24,6 +28,8 @@ R_out = 2
 
 logger.info("nr: {:d} nθ: {:d}".format(nr, nθ))
 logger.info("Peclet number for diffusion = {:e}".format(Pe))
+if finite_pe is False:
+    logger.info("Diffision is off.")
 
 delta = 0.02
 nrot = 8 # four turns clockwise, four turns counterclockwise
@@ -59,7 +65,10 @@ def Forcing(*args, domain=domain, F=SquareBoundaryForcing):
 
 de.operators.parseables['Vr'] = Forcing
 
-problem = de.IVP(domain, variables=['φ','u', 'v', 'p', 'ur', 'vr', 'c1', 'c2', 'c3', 'c1r', 'c2r', 'c3r'])
+variables = ['φ','u', 'v', 'p', 'ur', 'vr', 'c1', 'c2', 'c3']
+if finite_pe:
+    variables += ['c1r', 'c2r', 'c3r']
+problem = de.IVP(domain, variables=variables)
 
 problem.parameters['Pe'] = Pe
 problem.parameters['delta'] = delta
@@ -80,16 +89,25 @@ problem.add_equation('r*r*dθ(p) - Lap_θ = 0')
 problem.add_equation('r*ur + u + dθ(v) = 0')
 
 # dye equations
-problem.add_equation('r*r*dt(c1) - Lap_s(c1, c1r)/Pe = -UdotGrad_s(c1, c1r)')
-problem.add_equation('r*r*dt(c2) - Lap_s(c2, c2r)/Pe = -UdotGrad_s(c2, c2r)')
-problem.add_equation('r*r*dt(c3) - Lap_s(c3, c3r)/Pe = -UdotGrad_s(c3, c3r)')
+if finite_pe:
+    dye1_eqn = 'r*r*dt(c1) - Lap_s(c1, c1r)/Pe = -UdotGrad_s(c1, c1r)'
+    dye2_eqn = 'r*r*dt(c2) - Lap_s(c2, c2r)/Pe = -UdotGrad_s(c2, c2r)'
+    dye3_eqn = 'r*r*dt(c3) - Lap_s(c3, c3r)/Pe = -UdotGrad_s(c3, c3r)'
+else:
+    dye1_eqn = 'r*r*dt(c1) = -UdotGrad_s(c1, dr(c1))'
+    dye2_eqn = 'r*r*dt(c2) = -UdotGrad_s(c2, dr(c2))'
+    dye3_eqn = 'r*r*dt(c3) = -UdotGrad_s(c3, dr(c3))'
+problem.add_equation(dye1_eqn)
+problem.add_equation(dye2_eqn)
+problem.add_equation(dye3_eqn)
 
 # First order
 problem.add_equation('dr(u) - ur = 0')
 problem.add_equation('dr(v) - vr = 0')
-problem.add_equation('dr(c1) - c1r = 0')
-problem.add_equation('dr(c2) - c2r = 0')
-problem.add_equation('dr(c3) - c3r = 0')
+if finite_pe:
+    problem.add_equation('dr(c1) - c1r = 0')
+    problem.add_equation('dr(c2) - c2r = 0')
+    problem.add_equation('dr(c3) - c3r = 0')
 
 # Phi is just the rotational phase of the inner cylinder...solving as a PDE for convenience
 problem.add_equation('dt(φ) - v/R_in = 0')
@@ -101,12 +119,14 @@ problem.add_bc('right(v) = 0')
 problem.add_bc('left(u) = 0')
 problem.add_bc('right(u) = 0', condition="nθ != 0")
 problem.add_bc('right(p) = 0', condition="nθ == 0")
-problem.add_bc('left(c1r) = 0')
-problem.add_bc('right(c1r) = 0')
-problem.add_bc('left(c2r) = 0')
-problem.add_bc('right(c2r) = 0')
-problem.add_bc('left(c3r) = 0')
-problem.add_bc('right(c3r) = 0')
+
+if finite_pe:
+    problem.add_bc('left(c1r) = 0')
+    problem.add_bc('right(c1r) = 0')
+    problem.add_bc('left(c2r) = 0')
+    problem.add_bc('right(c2r) = 0')
+    problem.add_bc('left(c3r) = 0')
+    problem.add_bc('right(c3r) = 0')
 
 # build solver and set stop times
 solver = problem.build_solver(de.timesteppers.RK443)
