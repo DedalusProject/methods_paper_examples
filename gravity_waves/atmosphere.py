@@ -44,13 +44,13 @@ m = m_poly
 logger.info("m={}, m_ad = {}, m_poly=(3-{})/(1+{})={}".format(m, m_ad, b, a, m_poly))
 
 fudge_factor = 1.25
-ln_Teff = -1
+ln_Teff = -2
 f = 1/3
 q = 2/3
 τ0 = 4*f*np.exp(-4*ln_Teff*fudge_factor) - q
 ε = q/τ0
 
-Lz = 2 ; Q = 1-ε
+Lz = 1.25 ; Q = 1-ε
 
 logger.info("Target atmosphere has ln_Teff = {} and τ0 = {:g} for ε = {:g}".format(ln_Teff, τ0, ε))
 
@@ -143,6 +143,7 @@ if do_plot:
     ax.set_ylabel("lnT")
     ax2.plot(z, ln_rho['g'], label='lnrho', linestyle='dashed')
     ax2.set_ylabel("lnrho")
+    ax.set_title("iterative convergence of atmosphere")
 
 logger.info("converged in {:d} iter and in {:g} seconds".format(iter, end_time-start_time))
 
@@ -171,21 +172,30 @@ logger.info("n_rho = {:.3g}".format(ln_rho_bot - ln_rho_top))
 fig = plt.figure()
 ax = fig.add_subplot(2,1,1)
 ax.plot(z, ln_T['g'], label='T')
+ax.plot(z_phot, ln_T['g'][i_tau_23], marker='o', color='black', alpha=70)
 ax.set_ylabel(r"$\ln T$")
-ax.plot(z_phot, ln_T['g'][i_tau_23], marker='o')
 ax2 = ax.twinx()
-ax2.plot(z, ln_rho['g'], label=r'$\ln \rho$', linestyle='dashed')
-ax2.plot(z, ln_rho['g']+ln_T['g'], label=r'$\ln P$', linestyle='dashed')
+ax2.plot(z, ln_rho['g'], label=r'$\ln \rho$', linestyle='dashed', color='firebrick')
+ax2.plot(z, ln_rho['g']+ln_T['g'], label=r'$\ln P$', linestyle='dashed', color='darkgreen')
 ax2.set_ylabel(r"$\ln \rho, \ln P$")
+
+lines1, labels1 = ax.get_legend_handles_labels()
+lines2, labels2 = ax2.get_legend_handles_labels()
+ax.legend(lines1+lines2, labels1+labels2, loc='center left', frameon=False)
+
 ax = fig.add_subplot(2,1,2)
 ax.plot(z_diag, diagnostics['s_Cp']['g'], label=r'$s/c_P$')
-ax.plot(z_diag, diagnostics['dsdz_Cp']['g'], label=r'$\nabla s/c_P$')
-ax.set_ylabel(r"$s/c_P$ and $\nabla s/c_P$")
+ax.set_ylabel(r"$s/c_P$")
 ax2 = ax.twinx()
-ax2.plot(z, brunt2['g'], color='black', linestyle='dashed')
-ax2.plot(z_phot, brunt2['g'][i_tau_23], marker='o', color='black')
+ax2.plot(z, brunt2['g'], color='black', linestyle='dashed', label=r'$N^2$')
+ax2.plot(z_phot, brunt2['g'][i_tau_23], marker='o', color='black', alpha=70)
 ax2.set_ylabel(r'$N^2$')
-ax.legend()
+
+lines1, labels1 = ax.get_legend_handles_labels()
+lines2, labels2 = ax2.get_legend_handles_labels()
+ax.legend(lines1+lines2, labels1+labels2, loc='center left', frameon=False)
+
+plt.tight_layout()
 fig.savefig('atmosphere_a{}_b{}_eps{}.png'.format(a,b,ε), dpi=600)
 
 fig = plt.figure()
@@ -205,6 +215,8 @@ print("ln_T_top: {:g} and analytic {:g}".format(ln_T_top, ln_T_top_analytic))
 ax.plot(lnP,
         np.log((Q*np.exp(lnP*(1+a)) + np.exp(ln_T_top_analytic*(4+1-b)))**(1/(4+a-b))),
         linestyle='dashed')
+ax.plot(lnP,
+        np.log((Q/(m+1)*(1+a)/(4+a-b)*np.exp(lnP*(1+a)))**(1/(4+a-b))), linestyle='dotted')
 
 ax.set_ylabel(r'$\ln T$')
 ax.set_xlabel(r'$\ln P$')
@@ -215,10 +227,6 @@ one_over_m.set_scales(domain.dealias, keep_data=True)
 ax2.plot(ln_rho['g']+ln_T['g'], one_over_m['g'])
 ax2.axhline(y=1/m, linestyle='dashed', color='black')
 ax2.set_ylabel('1/m')
-
-fig, ax = plt.subplots(nrows=2)
-ax[0].plot(z, np.exp(ln_T['g']))
-ax[1].plot(z, np.exp(ln_rho['g']))
 
 use_evaluator = False
 if use_evaluator:
