@@ -46,14 +46,18 @@ for i, k1 in enumerate(ks):
     y = freqs[i]
     k = np.array([k1]*len(y))
 
-    ω = np.abs(y.real)/brunt
-    gwaves = np.where(ω <= ω_lower[i])
-    acoustic = np.where(ω > ω_lower[i])
+    ω = y.real/brunt
+    gwaves = np.where(np.abs(ω) <= ω_lower[i])
+    acoustic = np.where(np.abs(ω) > ω_lower[i])
 
-    ax[0].plot(k[acoustic], ω[acoustic], marker='x', linestyle='none', color=c_acoustic)
-    ax[0].plot(k[gwaves], ω[gwaves], marker='x', linestyle='none', color=c_gravity)
-    ax[1].plot(k[acoustic], 1/ω[acoustic], marker='x', linestyle='none', color=c_acoustic)
-    ax[1].plot(k[gwaves], 1/ω[gwaves], marker='x', linestyle='none', color=c_gravity)
+    ax[0].plot(k[acoustic], np.abs(ω[acoustic]), marker='x', linestyle='none', color=c_acoustic, zorder=2)
+    ax[0].plot(k[gwaves], np.abs(ω[gwaves]), marker='x', linestyle='none', color=c_gravity, zorder=2)
+    if i == 0:
+        ax[1].plot(k[acoustic], np.abs(1/ω[acoustic]), marker='x', linestyle='none', color=c_acoustic, zorder=2, label='AC')
+        ax[1].plot(k[gwaves], np.abs(1/ω[gwaves]), marker='x', linestyle='none', color=c_gravity, zorder=2, label='GW')
+    else:
+        ax[1].plot(k[acoustic], np.abs(1/ω[acoustic]), marker='x', linestyle='none', color=c_acoustic, zorder=2)
+        ax[1].plot(k[gwaves], np.abs(1/ω[gwaves]), marker='x', linestyle='none', color=c_gravity, zorder=2)
     target_k = 23
     i_k = np.argmin(np.abs(ks-target_k))
     if i == i_k:
@@ -99,49 +103,57 @@ for i, k1 in enumerate(ks):
         #ax[0].plot(k[0], ω[i_sort][i_brunt+ac], marker='o', color='black', alpha=0.2, markersize=10)
         #ax[1].plot(k[0], P[i_brunt+gw], marker='o', color='black', alpha=0.2, markersize=10)
         #ax[1].plot(k[0], P[i_brunt+ac], marker='o', color='black', alpha=0.2, markersize=10)
-        print(ω[i_sort][i_brunt+gw], 1/ω[i_sort][i_brunt+gw])
-        print(ω[i_sort][i_brunt+ac], 1/ω[i_sort][i_brunt+ac])
+        print("GW {:g}, {:g}".format(ω[i_sort][i_brunt+gw], 1/ω[i_sort][i_brunt+gw]))
+        print("AC {:g}, {:g}".format(ω[i_sort][i_brunt+ac], 1/ω[i_sort][i_brunt+ac]))
 
         fig_eig, ax_eig = plt.subplots(nrows=2, sharex=True)
         for axR in ax_eig:
             axR.set_ylabel(r'$\sqrt{\rho}w$')
 
-        gws = [-1, -6, -11, -16]
-        acs = [1, 6, 11, 16]
+        gws = [0, -2, -5, -9]
+        acs = [1, 3, 6, 10]
         weight = np.sqrt(rho0)
 
-        colors = ['steelblue', 'seagreen', 'firebrick', 'darkslateblue']
+        colors = ['firebrick', 'darkorange', 'seagreen', 'darkslateblue']
         i_color = 0
-        #ax_eig[0].plot(z, weight*w[i_brunt+gw,:].real, color=wc)
+        print("   ω/N     N/ω")
         for gw, ac in zip(gws,acs):
-            ax_eig[1].plot(z, weight*w[i_brunt+ac,:].real, color=colors[i_color])
+            ax_eig[1].plot(z, weight*w[i_brunt+ac,:].real, color=colors[i_color], label='{:3.1f}'.format(ω[i_sort][i_brunt+gw]))
             ax_eig[1].plot(z, weight*w[i_brunt+ac,:].imag, linestyle='dashed', color=colors[i_color])
-            ax_eig[0].plot(z, weight*w[i_brunt+gw,:].real, color=colors[i_color])
+            ax_eig[0].plot(z, weight*w[i_brunt+gw,:].real, color=colors[i_color], label='{:3.1f}'.format(1/ω[i_sort][i_brunt+gw]))
             ax_eig[0].plot(z, weight*w[i_brunt+gw,:].imag, linestyle='dashed', color=colors[i_color])
+
+            ax[0].plot(k[0], ω[i_sort][i_brunt+gw], marker='o', color=colors[i_color], alpha=0.5, markersize=10, zorder=3)
+            ax[0].plot(k[0], ω[i_sort][i_brunt+ac], marker='o', color=colors[i_color], alpha=0.5, markersize=10, zorder=3)
+            ax[1].plot(k[0], P[i_brunt+gw], marker='o', color=colors[i_color], alpha=0.5, markersize=10, zorder=3)
+            ax[1].plot(k[0], P[i_brunt+ac], marker='o', color=colors[i_color], alpha=0.5, markersize=10, zorder=3)
+            print("GW {:3.1f}, {:3.1f}".format(ω[i_sort][i_brunt+gw], 1/ω[i_sort][i_brunt+gw]))
+            print("AC {:3.1f}, {:3.1f}".format(ω[i_sort][i_brunt+ac], 1/ω[i_sort][i_brunt+ac]))
             i_color += 1
 
-            ax[0].plot(k[0], ω[i_sort][i_brunt+gw], marker='o', color='black', alpha=0.2, markersize=10)
-            ax[0].plot(k[0], ω[i_sort][i_brunt+ac], marker='o', color='black', alpha=0.2, markersize=10)
-            ax[1].plot(k[0], P[i_brunt+gw], marker='o', color='black', alpha=0.2, markersize=10)
-            ax[1].plot(k[0], P[i_brunt+ac], marker='o', color='black', alpha=0.2, markersize=10)
-            print(ω[i_sort][i_brunt+gw], 1/ω[i_sort][i_brunt+gw])
-            print(ω[i_sort][i_brunt+ac], 1/ω[i_sort][i_brunt+ac])
+        legend = ax_eig[0].legend(frameon=False, title=r'$N\omega$', loc='lower left', ncol=4)
+        for line,text in zip(legend.get_lines(), legend.get_texts()):
+            text.set_color(line.get_color())
+        legend = ax_eig[1].legend(frameon=False, title=r'$\omega/N$', loc='lower left', ncol=4)
+        for line,text in zip(legend.get_lines(), legend.get_texts()):
+            text.set_color(line.get_color())
         ax_eig[0].text(0, 1, 'gravity waves\n'+r'($\omega \leq \omega_\mathrm{GW}$)', verticalalignment='top')
         ax_eig[1].text(0, 1, 'acoustic waves\n'+r'($\omega > \omega_\mathrm{GW}$)', verticalalignment='top')
         ax_eig[1].set_xlabel(r'height $z$')
 
-ax[0].plot(ks, ω_lower, linestyle='dashed')
-ax[0].axhline(y=1, linestyle='dashed', color='black')
+ax[0].plot(ks, ω_lower, linestyle='dashed', zorder=1)
+ax[0].axhline(y=1, linestyle='dashed', color='black', zorder=1)
 ax[0].set_ylabel(r'frequency $\omega/N$')
 ax[0].set_ylim(0,5)
 ax[0].set_xscale('log')
 
-ax[1].plot(ks, 1/ω_lower, linestyle='dashed')
-ax[1].axhline(y=1, linestyle='dashed', color='black')
+ax[1].plot(ks, 1/ω_lower, linestyle='dashed', label=r'$\omega_\mathrm{GW}$', zorder=1)
+ax[1].axhline(y=1, linestyle='dashed', color='black', label=r'$N$', zorder=1)
 ax[1].set_xlabel(r'wavenumber $k/k_{H\rho}$')
 ax[1].set_ylabel(r'Period $N/\omega$')
 ax[1].set_ylim(0,5.1)
 ax[1].set_xscale('log')
+ax[1].legend(frameon=False)
 
 plt.tight_layout()
 plt.subplots_adjust(hspace=0.05)
