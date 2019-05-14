@@ -27,7 +27,6 @@ from dedalus import public as de
 from dedalus.extras.plot_tools import quad_mesh, pad_limits
 from dedalus.extras import flow_tools
 
-Lx, Ly, H  = 10, 10, 1
 Lx, Ly, H  = 40, 20, 1
 Nx, Ny, Nz = 256, 128, 32
 
