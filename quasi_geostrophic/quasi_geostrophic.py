@@ -1,11 +1,17 @@
 """
     Dedalus script for 3D Quasi-Geostrophic flow.
-
-    Add more description.
-
-    It should take approximately X hours on Y (Ivy Bridge/Haswell/Broadwell/Skylake/etc) cores.
     
-"""
+    This script uses Fourier-bases in the x and y directions and Chebyshev in z.
+    
+    The initial conditions are set based on the pressure.
+    A LBVP solves for the balanced vertical velocity.
+    
+    This script should be ran in parallel, and would be most efficient using a
+    2D process mesh.  It uses the built-in analysis framework to save 2D data slices
+    in HDF5 files.  The `merge.py` script in this folder can be used to merge
+    distributed analysis sets from parallel runs.
+    
+    """
 
 
 import numpy as np
@@ -25,7 +31,7 @@ Lx, Ly, H  = 10, 10, 1
 Lx, Ly, H  = 40, 20, 1
 Nx, Ny, Nz = 256, 128, 32
 
-mesh = [16,16]
+mesh = [8,16]
 x_basis =   de.Fourier('x', Nx, interval=(-Lx, Lx), dealias=3/2)
 y_basis =   de.Fourier('y', Ny, interval=(-Ly, Ly), dealias=3/2)
 z_basis = de.Chebyshev('z', Nz, interval=(0, H), dealias=3/2)
@@ -34,10 +40,10 @@ domain = de.Domain([x_basis,y_basis,z_basis], np.float64, mesh=mesh)
 # Parameters
 Gamma = 1.
 beta  = 0.1
-r     = 0.08
+r     = 0.16
 S     = 1.
-nu    = 3e-2
-kappa = 3e-2
+nu    = 1e-6
+kappa = 1e-6
 
 # Background thermal wind
 z = domain.grid(2)
@@ -45,8 +51,8 @@ U = domain.new_field()
 U.meta['x','y']['constant'] = True
 U['g'] = S*z
 
-# variables: pressure, vertical velocity, buoyancy, vertical heat flux.
-problem = de.IVP(domain, variables=['P','W','B','Q'])
+# variables: pressure, vertical velocity
+problem = de.IVP(domain, variables=['P','W'])
 problem.meta[:]['z']['dirichlet'] = True
 
 # horizontal velocity perturbations
@@ -56,9 +62,13 @@ problem.substitutions['v'] = " dx(P)"
 # relative vorticity
 problem.substitutions['zeta'] = "dx(v) - dy(u)"
 
+# vertical velocity
+problem.substitutions['B'] = "dz(P)"
+
 # advection, Laplacian
 problem.substitutions['D(a)'] = "u*dx(a) + v*dy(a)"
 problem.substitutions['L(a)'] = "d(a,x=2) + d(a,y=2)"
+problem.substitutions['HD(a)'] = "L(L(L(L(a))))"
 
 # parameters
 problem.parameters['Gamma'] = Gamma # stratification; must be positive.
@@ -70,26 +80,22 @@ problem.parameters['nu']    = nu    # viscosity
 problem.parameters['kappa'] = kappa # thermal viscosity
 
 # temperature and vorticity equations
-problem.add_equation("B - dz(P)  = 0")
-problem.add_equation("Q - dz(B)  = 0")
-problem.add_equation("dt(zeta) + U*dx(zeta) +  beta*v -    dz(W) -    nu*(L(zeta + Q))  = -D(zeta)")
-problem.add_equation("dt(B)    + U*dx(B)    - dz(U)*v + Gamma*W  - kappa*(L(B) + dz(Q)) = -D(B)")
+problem.add_equation("dt(zeta) + U*dx(zeta) +  beta*v -    dz(W) +    nu*HD(zeta)  = -D(zeta)")
+problem.add_equation("dt(B)    + U*dx(B)    - dz(U)*v + Gamma*W  + kappa*HD(B) = -D(B)")
 
 # match vertical velocity to Ekman layer on the bottom boundary
 problem.add_bc(" left(W - r*zeta) = 0")
 #problem.add_bc("right(W + r*zeta) = 0", condition="(nx != 0)  or (ny != 0)")
 problem.add_bc("right(W) = 0", condition="(nx != 0)  or (ny != 0)")
 problem.add_bc("right(P) = 0", condition="(nx == 0) and (ny == 0)")
-problem.add_bc(" left(B) = 0")
-problem.add_bc("right(B) = 0")
 
 # Time-stepping solver
 solver = problem.build_solver(de.timesteppers.SBDF2)
 
 # Initial dt, and stop conditions
 dt_init = 1e-2
-solver.stop_iteration = 1000000
-solver.stop_sim_time  = np.inf
+solver.stop_iteration = np.inf
+solver.stop_sim_time  = 200
 solver.stop_wall_time = np.inf
 
 # Initial conditions
@@ -113,9 +119,6 @@ P_init['g'] = 30 * (noise1*np.cos(kz*z) + noise2)
 P_init.set_scales(1/16)
 P_init.require_grid_space()
 
-P_init.differentiate('z', out=B_init)
-B_init.differentiate('z', out=Q_init);
-
 # Need to solve for W_init using dt(P) --> Pt_init as a slack variable.
 init_problem = de.LBVP(domain, variables=['Pt','W'])
 init_problem.meta[:]['z']['dirichlet'] = True
@@ -124,14 +127,12 @@ init_problem.substitutions = problem.substitutions
 init_problem.parameters    = problem.parameters
 
 init_problem.parameters['P'] = P_init
-init_problem.parameters['B'] = B_init
 init_problem.parameters['Q'] = Q_init
 
-init_problem.add_equation(" L(Pt) -    dz(W) = -U*dx(zeta) -  beta*v +    nu*L(zeta + Q)    - D(zeta)")
-init_problem.add_equation("dz(Pt) + Gamma*W  = -U*dx(B)    + dz(U)*v + kappa*(L(B) + dz(Q)) - D(B)")
+init_problem.add_equation(" L(Pt) -    dz(W) = -U*dx(zeta) -  beta*v -    nu*HD(zeta)    - D(zeta)")
+init_problem.add_equation("dz(Pt) + Gamma*W  = -U*dx(B)    + dz(U)*v - kappa*HD(B) - D(B)")
 
 init_problem.add_bc(" left(W) =   left(r*zeta)")
-#init_problem.add_bc("right(W) = -right(r*zeta)", condition="(nx != 0)  or (ny != 0)") # for top Ekman BC
 init_problem.add_bc("right(W)  = 0", condition="(nx != 0)  or (ny != 0)")
 init_problem.add_bc("right(Pt) = 0", condition="(nx == 0) and (ny == 0)")
 
@@ -140,24 +141,28 @@ init_solver = init_problem.build_solver()
 init_solver.solve()
 
 P = solver.state['P']
-B = solver.state['B']
-Q = solver.state['Q']
 W = solver.state['W']
-for f in [P,B,Q,W]: f.set_scales(domain.dealias)
+for f in [P,W]: f.set_scales(domain.dealias)
 
 P['g'] = P_init['g']
-B['g'] = B_init['g']
-Q['g'] = Q_init['g']
 
 init_solver.state['W'].set_scales(domain.dealias)
 W['g'] = init_solver.state['W']['g']
 
 # Analysis
 snap = solver.evaluator.add_file_handler('snapshots', sim_dt=0.2, max_writes=10)
-snap.add_task("interp(zeta, z=1)",   name='vorticity-top')
-snap.add_task("interp(W,z=1/2)", name='upwelling-mid')
-snap.add_task("integ(zeta, 'z')",    name='barotropic')
-snap.add_task("interp(zeta, x=0)", name='vorticity-slice')
+snap.add_task("interp(zeta, z=1)",   name='vorticity-top', scales=4)
+snap.add_task("interp(W,z=1/2)", name='upwelling-mid', scales=4)
+snap.add_task("integ(zeta, 'z')",    name='barotropic', scales=4)
+snap.add_task("interp(zeta, x=0)", name='vorticity-slice', scales=4)
+snap.add_task("interp(B, z=1)", name='buoyancy-top', scales=4)
+snap.add_task("interp(zeta + dz(B/Gamma), z=1)", name='PV-top', scales=4)
+snap.add_task("interp(zeta + dz(B/Gamma), x=0)", name='PV-slice', scales=4)
+
+traces = solver.evaluator.add_file_handler('traces', sim_dt=0.01, max_writes=1000)
+traces.add_task("integ(B*B/Gamma)",   name='PE')
+traces.add_task("integ(zeta**2)", name='enstrophy')
+traces.add_task("integ(u**2+v**2)",    name='KE')
 
 flow = flow_tools.GlobalFlowProperty(solver, cadence=10)
 flow.add_property("sqrt(W*W)", name='W')
@@ -173,7 +178,6 @@ while solver.ok:
     if (solver.iteration-1) % 10000 == 0:
         for field in solver.state.fields: field.require_grid_space()
     dt = CFL.compute_dt()
-    if dt < 1e-8: break
     solver.step(dt)
     if (solver.iteration-1) % 10 == 0:
         logger.info('Iteration: %i, Time: %e, dt: %e' %(solver.iteration, solver.sim_time, dt))
@@ -184,4 +188,3 @@ logger.info('Iterations: %i' %solver.iteration)
 logger.info('Sim end time: %f' %solver.sim_time)
 logger.info('Run time: %.2f sec' %(end_run_time-start_run_time))
 logger.info('Run time: %f cpu-hr' %((end_run_time-start_run_time)/60/60))
-
