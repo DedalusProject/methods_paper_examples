@@ -168,35 +168,50 @@ ln_rho_bot = ln_rho.interpolate(z=0)['g'][0]
 ln_rho_top = ln_rho.interpolate(z=Lz)['g'][0]
 logger.info("n_rho = {:.3g}".format(ln_rho_bot - ln_rho_top))
 
-
-fig = plt.figure()
-ax = fig.add_subplot(2,1,1)
-ax.plot(z, ln_T['g'], label='T')
-ax.plot(z_phot, ln_T['g'][i_tau_23], marker='o', color='black', alpha=70)
-ax.set_ylabel(r"$\ln T$")
-ax2 = ax.twinx()
+width = 6.4
+fig = plt.figure(figsize=(width, width/1.6))
+ax1 = fig.add_subplot(2,1,1)
+ax1.plot(z, ln_T['g'], label=r'$\ln T$')
+ax1.plot(z_phot, ln_T['g'][i_tau_23], marker='o', color='black', alpha=70)
+ax1.set_ylabel(r"$\ln T$")
+ax2 = ax1.twinx()
 ax2.plot(z, ln_rho['g'], label=r'$\ln \rho$', linestyle='dashed', color='firebrick')
 ax2.plot(z, ln_rho['g']+ln_T['g'], label=r'$\ln P$', linestyle='dashed', color='darkgreen')
 ax2.set_ylabel(r"$\ln \rho, \ln P$")
-
-lines1, labels1 = ax.get_legend_handles_labels()
+lines1, labels1 = ax1.get_legend_handles_labels()
 lines2, labels2 = ax2.get_legend_handles_labels()
-ax.legend(lines1+lines2, labels1+labels2, loc='center left', frameon=False)
+ax1.legend(lines1+lines2, labels1+labels2, loc='center left', frameon=False)
+plt.setp(ax1.get_xticklabels(), visible=False)
 
-ax = fig.add_subplot(2,1,2)
+ax = fig.add_subplot(2,1,2, sharex=ax1)
 ax.plot(z_diag, diagnostics['s_Cp']['g'], label=r'$s/c_P$')
 ax.set_ylabel(r"$s/c_P$")
 ax2 = ax.twinx()
 ax2.plot(z, brunt2['g'], color='black', linestyle='dashed', label=r'$N^2$')
 ax2.plot(z_phot, brunt2['g'][i_tau_23], marker='o', color='black', alpha=70)
 ax2.set_ylabel(r'$N^2$')
-
+ax.set_xlabel(r'height $z$')
 lines1, labels1 = ax.get_legend_handles_labels()
 lines2, labels2 = ax2.get_legend_handles_labels()
 ax.legend(lines1+lines2, labels1+labels2, loc='center left', frameon=False)
-
 plt.tight_layout()
-fig.savefig('atmosphere_a{}_b{}_eps{}.png'.format(a,b,ε), dpi=600)
+plt.subplots_adjust(hspace=0.05)
+fig.savefig('atmosphere_a{}_b{}_eps{}_part1.pdf'.format(a,b,ε))
+
+fig = plt.figure(figsize=(width, width/1.6*0.5))
+ax = fig.add_subplot(1,1,1)
+ln_P = ln_rho['g']+ln_T['g']
+ax.plot(ln_P, ln_T['g'], label=r'$\ln T$')
+ln_T_top_analytic = 1/(4*fudge_factor)*np.log(ε/(1+ε))
+print("ln_T_top: {:g} and analytic {:g}".format(ln_T_top, ln_T_top_analytic))
+ln_T_analytic = np.log((Q*np.exp(ln_P*(1+a)) + np.exp(ln_T_top_analytic*(4+1-b)))**(1/(4+a-b)))
+ax.plot(ln_P, ln_T_analytic, linestyle='dashed', label=r'$\ln T_\mathrm{analytic}$')
+
+ax.set_ylabel(r'$\ln T$')
+ax.set_xlabel(r'$\ln P$')
+ax.legend(frameon=False)
+plt.tight_layout()
+fig.savefig('atmosphere_a{}_b{}_eps{}_part2.pdf'.format(a,b,ε))
 
 fig = plt.figure()
 ax = fig.add_subplot(2,1,1)
