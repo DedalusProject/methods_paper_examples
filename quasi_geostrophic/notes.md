@@ -1,6 +1,5 @@
 # Quasi-Geostrophic  #
 
-
 ## Problem Statement ##
 
 Brief statement of problem and why it's included.
@@ -8,12 +7,12 @@ Brief statement of problem and why it's included.
 ### Resolution ###
 
 ```
-nx = 
-ny =
-nz =
+nx = 256
+ny = 128
+nz = 32
 ```
 
-This test runs on <<N>> cores and should run in approximately <<Y>> hours on <<Z>> machine.
+This test runs on 1024 cores and should run in approximately 4 hours on Pleiades.
 
 ## To Run ##
 

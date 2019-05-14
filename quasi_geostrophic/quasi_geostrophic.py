@@ -11,7 +11,7 @@
     in HDF5 files.  The `merge.py` script in this folder can be used to merge
     distributed analysis sets from parallel runs.
     
-    """
+"""
 
 
 import numpy as np
