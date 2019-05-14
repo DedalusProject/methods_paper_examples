@@ -213,6 +213,17 @@ ax.legend(frameon=False)
 plt.tight_layout()
 fig.savefig('atmosphere_a{}_b{}_eps{}_part2.pdf'.format(a,b,ε))
 
+error = domain.new_field()
+error.set_scales(domain.dealias)
+error['g'] = np.abs(ln_T['g']-ln_T_analytic)
+print("L2 norm between calculated and analytic solution {:g}".format(error.integrate('z')['g'][0]))
+
+fig = plt.figure(figsize=(width, width/1.6*0.5))
+ax = fig.add_subplot(1,1,1)
+ax.plot(ln_P, ln_T['g']-ln_T_analytic)
+
+
+
 fig = plt.figure()
 ax = fig.add_subplot(2,1,1)
 ax.plot(z, tau['g'], label='τ')
