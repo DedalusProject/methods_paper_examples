@@ -41,15 +41,15 @@ ks /= k_Hρ
 
 c_acoustic = 'lightskyblue'
 c_gravity = 'firebrick'
-fig, ax = plt.subplots(nrows=2, ncols=1)
+fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True)
 for i, k1 in enumerate(ks):
     y = freqs[i]
     k = np.array([k1]*len(y))
-    #oscillatory = np.where(np.abs(y.imag)<1e-8)
+
     ω = np.abs(y.real)/brunt
     gwaves = np.where(ω <= ω_lower[i])
     acoustic = np.where(ω > ω_lower[i])
-    #ax.plot(ks, np.abs(y.real), marker='o', linestyle='none')
+
     ax[0].plot(k[acoustic], ω[acoustic], marker='x', linestyle='none', color=c_acoustic)
     ax[0].plot(k[gwaves], ω[gwaves], marker='x', linestyle='none', color=c_gravity)
     ax[1].plot(k[acoustic], 1/ω[acoustic], marker='x', linestyle='none', color=c_acoustic)
@@ -57,7 +57,7 @@ for i, k1 in enumerate(ks):
     target_k = 23
     i_k = np.argmin(np.abs(ks-target_k))
     if i == i_k:
-        fig_eig, ax_eig = plt.subplots(nrows=2)
+        fig_eig, ax_eig = plt.subplots(nrows=2, sharex=True)
         for axR in ax_eig:
             axR.set_ylabel(r'$\sqrt{\rho}w,\,\sqrt{\rho}u$')
         ax_eig_L = []
@@ -102,12 +102,9 @@ for i, k1 in enumerate(ks):
         print(ω[i_sort][i_brunt+gw], 1/ω[i_sort][i_brunt+gw])
         print(ω[i_sort][i_brunt+ac], 1/ω[i_sort][i_brunt+ac])
 
-        fig_eig, ax_eig = plt.subplots(nrows=2)
+        fig_eig, ax_eig = plt.subplots(nrows=2, sharex=True)
         for axR in ax_eig:
-            axR.set_ylabel(r'$\sqrt{\rho}w,\,\sqrt{\rho}u$')
-        ax_eig_L = []
-        for axR in ax_eig:
-            ax_eig_L.append(axR.twinx())
+            axR.set_ylabel(r'$\sqrt{\rho}w$')
 
         gws = [-1, -6, -11, -16]
         acs = [1, 6, 11, 16]
@@ -121,20 +118,7 @@ for i, k1 in enumerate(ks):
             ax_eig[1].plot(z, weight*w[i_brunt+ac,:].imag, linestyle='dashed', color=colors[i_color])
             ax_eig[0].plot(z, weight*w[i_brunt+gw,:].real, color=colors[i_color])
             ax_eig[0].plot(z, weight*w[i_brunt+gw,:].imag, linestyle='dashed', color=colors[i_color])
-            #ax_eig[1].plot(z, weight*w[i_brunt+ac,:].imag, linestyle='dashed', color=wc)
             i_color += 1
-
-            #ax_eig[0].plot(z, weight*u[i_brunt+gw,:].real, color=uc)
-            #ax_eig[1].plot(z, weight*u[i_brunt+ac,:].real, color=uc)
-            #ax_eig[0].plot(z, weight*u[i_brunt+gw,:].imag, linestyle='dashed', color=uc)
-            #ax_eig[1].plot(z, weight*u[i_brunt+ac,:].imag, linestyle='dashed', color=uc)
-
-            #weight = rho0
-
-            #ax_eig_L[0].plot(z, weight*T[i_brunt+gw,:].real, color=Tc)
-            #ax_eig_L[1].plot(z, weight*T[i_brunt+ac,:].real, color=Tc)
-            #ax_eig_L[0].plot(z, weight*T[i_brunt+gw,:].imag, linestyle='dashed', color=Tc)
-            #ax_eig_L[1].plot(z, weight*T[i_brunt+ac,:].imag, linestyle='dashed', color=Tc)
 
             ax[0].plot(k[0], ω[i_sort][i_brunt+gw], marker='o', color='black', alpha=0.2, markersize=10)
             ax[0].plot(k[0], ω[i_sort][i_brunt+ac], marker='o', color='black', alpha=0.2, markersize=10)
@@ -142,22 +126,26 @@ for i, k1 in enumerate(ks):
             ax[1].plot(k[0], P[i_brunt+ac], marker='o', color='black', alpha=0.2, markersize=10)
             print(ω[i_sort][i_brunt+gw], 1/ω[i_sort][i_brunt+gw])
             print(ω[i_sort][i_brunt+ac], 1/ω[i_sort][i_brunt+ac])
+        ax_eig[0].text(0, 1, 'gravity waves\n'+r'($\omega \leq \omega_\mathrm{GW}$)', verticalalignment='top')
+        ax_eig[1].text(0, 1, 'acoustic waves\n'+r'($\omega > \omega_\mathrm{GW}$)', verticalalignment='top')
+        ax_eig[1].set_xlabel(r'height $z$')
 
-#ax[0].plot(ks, ω_upper, linestyle='dashed')
 ax[0].plot(ks, ω_lower, linestyle='dashed')
 ax[0].axhline(y=1, linestyle='dashed', color='black')
-ax[1].axhline(y=1, linestyle='dashed', color='black')
-ax[0].set_xlabel(r'wavenumber $k/k_{H\rho}$')
 ax[0].set_ylabel(r'frequency $\omega/N$')
 ax[0].set_ylim(0,5)
-#ax[0].set_yscale('log')
-#ax[0].set_ylim(0,15)
+ax[0].set_xscale('log')
+
 ax[1].plot(ks, 1/ω_lower, linestyle='dashed')
+ax[1].axhline(y=1, linestyle='dashed', color='black')
 ax[1].set_xlabel(r'wavenumber $k/k_{H\rho}$')
 ax[1].set_ylabel(r'Period $N/\omega$')
 ax[1].set_ylim(0,5.1)
-ax[0].set_xscale('log')
 ax[1].set_xscale('log')
 
-fig.savefig('frequency_spectrum.png', dpi=600)
+plt.tight_layout()
+plt.subplots_adjust(hspace=0.05)
+
+fig.savefig('wave_frequency_spectrum.pdf')
+fig_eig.savefig('wave_eigenfunctions.pdf')
 plt.show()
