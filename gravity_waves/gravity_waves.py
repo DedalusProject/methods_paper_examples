@@ -28,6 +28,8 @@ z_atmosphere = atmosphere_file['z'][:]
 ln_T = atmosphere_file['ln_T'][:]
 ln_rho = atmosphere_file['ln_rho'][:]
 brunt2 = atmosphere_file['brunt_squared'][:]
+ω_ac2 = atmosphere_file['ω_ac_squared'][:]
+c_s2 = atmosphere_file['c_s_squared'][:]
 nz = atmosphere_file['nz'][()]
 Lz = atmosphere_file['Lz'][()]
 gamma = atmosphere_file['gamma'][()]
@@ -35,10 +37,10 @@ atmosphere_file.close()
 
 gamma = 5/3
 
-nz_waves = 128 #256 produces good results
+nz_waves = 64 #256 #256 produces good results
 z_basis = de.Chebyshev('z', nz_waves, interval=(0,Lz))
 domain_EVP = de.Domain([z_basis], comm=MPI.COMM_SELF)
-waves = de.EVP(domain_EVP, ['u','w','T1','ln_rho1'], eigenvalue='omega')
+waves = de.EVP(domain_EVP, ['u','w','T1','ln_rho1', 'w_z'], eigenvalue='omega')
 
 T0 = domain_EVP.new_field()
 T0_z = domain_EVP.new_field()
@@ -74,7 +76,7 @@ waves.parameters['gamma'] = gamma
 waves.parameters['k'] = 1
 waves.substitutions['dt(A)'] = '1j*omega*A'
 waves.substitutions['dx(A)'] = '-1j*k*A'
-waves.substitutions['Div_u'] = 'dx(u) + dz(w)'
+waves.substitutions['Div_u'] = 'dx(u) + w_z'
 logger.debug("Setting z-momentum equation")
 waves.add_equation("dt(w) + dz(T1) + T0*dz(ln_rho1) + T1*del_ln_rho0 = 0 ")
 logger.debug("Setting x-momentum equation")
@@ -83,12 +85,11 @@ logger.debug("Setting continuity equation")
 waves.add_equation("dt(ln_rho1) + w*del_ln_rho0 + Div_u  = 0 ")
 logger.debug("Setting energy equation")
 waves.add_equation("dt(T1) + w*T0_z + (gamma-1)*T0*Div_u = 0 ")
+waves.add_equation("dz(w) - w_z = 0 ")
 #waves.add_bc('left(dz(u)) = 0')
 #waves.add_bc('right(dz(u)) = 0')
-#waves.add_bc('left(dz(T1)) = 0')
 waves.add_bc('left(w) = 0')
 waves.add_bc('right(w) = 0')
-waves.add_bc('left(dz(T1)) = 0')
 
 # value at top of atmosphere in isothermal layer
 brunt = np.sqrt(np.abs(brunt2[-1])) # top in non-field grid
@@ -102,6 +103,7 @@ EP = Eigenproblem(waves)
 ks = np.logspace(-1,2, num=20)*k_Hρ
 freqs = []
 eigenfunctions = {'w':[], 'u':[], 'T':[]}
+omega = {'ω_plus_min':[], 'ω_minus_max':[]}
 w_weights = []
 KE = domain_EVP.new_field()
 rho0 = domain_EVP.new_field()
@@ -110,6 +112,11 @@ rho0_avg = (rho0.integrate('z')['g'][0]/Lz).real
 logger.debug("aveage ρ0 = {:g}".format(rho0_avg))
 fig, ax = plt.subplots()
 for i, k in enumerate(ks):
+    ω_lamb2 = k**2*c_s2
+    ω_plus2 = ω_lamb2 + ω_ac2
+    ω_minus2  = brunt2*ω_lamb2/(ω_lamb2 + ω_ac2)
+    omega['ω_plus_min'].append(np.min(np.sqrt(ω_plus2)))
+    omega['ω_minus_max'].append(np.max(np.sqrt(ω_minus2)))
     EP.EVP.namespace['k'].value = k
     EP.EVP.parameters['k'] = k
     EP.solve()
@@ -162,8 +169,10 @@ with h5py.File('wave_frequencies.h5','w') as outfile:
     for i, freq in enumerate(freqs):
         data_group = tasks_group.create_group('k_{:03d}'.format(i))
         data_group.create_dataset('freq',data=freq)
+        data_group.create_dataset('ω_plus_min',data=omega['ω_plus_min'][i])
+        data_group.create_dataset('ω_minus_max',data=omega['ω_minus_max'][i])
         data_group.create_dataset('eig_w',data=eigenfunctions['w'][i])
         data_group.create_dataset('eig_u',data=eigenfunctions['u'][i])
-        data_group.create_dataset('eig_T',data=eigenfunctions['T'][i])        
+        data_group.create_dataset('eig_T',data=eigenfunctions['T'][i])
     outfile.close()
 plt.show()

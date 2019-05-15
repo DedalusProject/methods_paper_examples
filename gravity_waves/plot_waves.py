@@ -7,13 +7,19 @@ with h5py.File('wave_frequencies.h5','r') as infile:
     eigs_w = []
     eigs_u = []
     eigs_T = []
+    ω_plus_min = []
+    ω_minus_max = []
+
     for k_i in infile['tasks']:
         freqs.append(infile['tasks'][k_i]['freq'][:])
         eigs_w.append(infile['tasks'][k_i]['eig_w'][:])
         eigs_u.append(infile['tasks'][k_i]['eig_u'][:])
         eigs_T.append(infile['tasks'][k_i]['eig_T'][:])
+        ω_plus_min.append(infile['tasks'][k_i]['ω_plus_min'][()])
+        ω_minus_max.append(infile['tasks'][k_i]['ω_minus_max'][()])
+
     ks = infile['scales']['grid'][:]
-    brunt = infile['scales']['brunt'][()]
+    brunt = infile['scales']['brunt_max'][()]
     k_Hρ  = infile['scales']['k_Hρ'][()]
     c_s   = infile['scales']['c_s'][()]
     z = infile['scales']['z'][:]
@@ -23,23 +29,14 @@ with h5py.File('wave_frequencies.h5','r') as infile:
     N = len(freqs)
     print("Read {}-frequency sets".format(N))
 
-Lz_atm = Lz
-Lz = Lz_atm
-kz = 2*np.pi/Lz #np.pi/Lz
-ω2_sw = (ks**2 + kz**2 + k_Hρ**2)*c_s**2
-ω2_gw = ks**2/(ks**2 + kz**2 + k_Hρ**2)*brunt**2
-ω_upper = np.sqrt(ω2_sw/2*(1+np.sqrt(1-4*ω2_gw/ω2_sw)))/brunt
-ω_lower = np.sqrt(ω2_sw/2*(1-np.sqrt(1-4*ω2_gw/ω2_sw)))/brunt
-
-kz = 2*np.pi/Lz_atm #np.pi/Lz
-ω2_sw = (ks**2 + kz**2 + k_Hρ**2)*c_s**2
-ω2_gw = ks**2/(ks**2 + kz**2 + k_Hρ**2)*brunt**2
-ω_upper = np.sqrt(ω2_sw/2*(1+np.sqrt(1-4*ω2_gw/ω2_sw)))/brunt
-
+ω_upper = np.array(ω_plus_min)/brunt
+ω_lower = np.array(ω_minus_max)/brunt
 
 ks /= k_Hρ
 target_k = 23
 i_k = np.argmin(np.abs(ks-target_k))
+print(ω_upper)
+print(ω_lower)
 
 c_acoustic = 'lightskyblue'
 c_gravity = 'firebrick'
@@ -78,8 +75,8 @@ for i, k1 in enumerate(ks):
         w = eigs_w[i][i_sort,:]
         u = eigs_u[i][i_sort,:]
         T = eigs_T[i][i_sort,:]
-        gw = -19
-        ac = 20
+        gw = -5
+        ac = 6
         weight = np.sqrt(rho0)
         wc = 'steelblue'
         #ax_eig[0].plot(z, weight*w[i_brunt+gw,:].real, color=wc)
