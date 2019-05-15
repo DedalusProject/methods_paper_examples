@@ -61,13 +61,7 @@ for i, k1 in enumerate(ks):
         print('Eigenfunctions for kx = {:g} ({:g} '.format(k1*k_Hρ, k1)+r'$k_{H\rho}$)')
         fig_eig, ax_eig = plt.subplots(nrows=2, sharex=True)
         for axR in ax_eig:
-            axR.set_ylabel(r'$\sqrt{\rho}w,\,\sqrt{\rho}u$')
-        ax_eig_L = []
-        for axR in ax_eig:
-            ax_eig_L.append(axR.twinx())
-        for axL in ax_eig_L:
-            axL.set_ylabel(r'$\rho T$')
-
+            axR.set_ylabel(r'$\sqrt{\rho}w,\,\sqrt{\rho}u, \sqrt{\rho}T$')
 
         i_sort = np.argsort(ω)
         P = 1/ω[i_sort]
@@ -79,23 +73,23 @@ for i, k1 in enumerate(ks):
         ac = 6
         weight = np.sqrt(rho0)
         wc = 'steelblue'
-        #ax_eig[0].plot(z, weight*w[i_brunt+gw,:].real, color=wc)
+        ax_eig[0].plot(z, weight*w[i_brunt+gw,:].real, color=wc)
         ax_eig[1].plot(z, weight*w[i_brunt+ac,:].real, color=wc)
         ax_eig[0].plot(z, weight*w[i_brunt+gw,:].imag, linestyle='dashed', color=wc)
-        #ax_eig[1].plot(z, weight*w[i_brunt+ac,:].imag, linestyle='dashed', color=wc)
+        ax_eig[1].plot(z, weight*w[i_brunt+ac,:].imag, linestyle='dashed', color=wc)
 
         uc = 'seagreen'
         ax_eig[0].plot(z, weight*u[i_brunt+gw,:].real, color=uc)
-        #ax_eig[1].plot(z, weight*u[i_brunt+ac,:].real, color=uc)
-        #ax_eig[0].plot(z, weight*u[i_brunt+gw,:].imag, linestyle='dashed', color=uc)
+        ax_eig[1].plot(z, weight*u[i_brunt+ac,:].real, color=uc)
+        ax_eig[0].plot(z, weight*u[i_brunt+gw,:].imag, linestyle='dashed', color=uc)
         ax_eig[1].plot(z, weight*u[i_brunt+ac,:].imag, linestyle='dashed', color=uc)
 
         #weight = rho0
         Tc = 'firebrick'
-        ax_eig_L[0].plot(z, weight*T[i_brunt+gw,:].real, color=Tc)
-        #ax_eig_L[1].plot(z, weight*T[i_brunt+ac,:].real, color=Tc)
-        #ax_eig_L[0].plot(z, weight*T[i_brunt+gw,:].imag, linestyle='dashed', color=Tc)
-        ax_eig_L[1].plot(z, weight*T[i_brunt+ac,:].imag, linestyle='dashed', color=Tc)
+        ax_eig[0].plot(z, weight*T[i_brunt+gw,:].real, color=Tc)
+        ax_eig[1].plot(z, weight*T[i_brunt+ac,:].real, color=Tc)
+        ax_eig[0].plot(z, weight*T[i_brunt+gw,:].imag, linestyle='dashed', color=Tc)
+        ax_eig[1].plot(z, weight*T[i_brunt+ac,:].imag, linestyle='dashed', color=Tc)
 
         #ax[0].plot(k[0], ω[i_sort][i_brunt+gw], marker='o', color='black', alpha=0.2, markersize=10)
         #ax[0].plot(k[0], ω[i_sort][i_brunt+ac], marker='o', color='black', alpha=0.2, markersize=10)
@@ -107,6 +101,7 @@ for i, k1 in enumerate(ks):
         fig_eig, ax_eig = plt.subplots(nrows=2, sharex=True)
         for axR in ax_eig:
             axR.set_ylabel(r'$\sqrt{\rho}w$')
+            axR.axhline(y=0, color='black', linestyle='dashed')
 
         gws = [0, -2, -5, -9]
         acs = [1, 3, 6, 10]
@@ -117,9 +112,10 @@ for i, k1 in enumerate(ks):
         print("   ω/N     N/ω")
         for gw, ac in zip(gws,acs):
             ax_eig[0].plot(z, weight*w[i_brunt+ac,:].real, color=colors[i_color], label='{:3.1f}'.format(ω[i_sort][i_brunt+gw]))
-            ax_eig[0].plot(z, weight*w[i_brunt+ac,:].imag, linestyle='dashed', color=colors[i_color])
+            #ax_eig[0].plot(z, weight*w[i_brunt+ac,:].imag, linestyle='dashed', color=colors[i_color])
             ax_eig[1].plot(z, weight*w[i_brunt+gw,:].real, color=colors[i_color], label='{:3.1f}'.format(1/ω[i_sort][i_brunt+gw]))
-            ax_eig[1].plot(z, weight*w[i_brunt+gw,:].imag, linestyle='dashed', color=colors[i_color])
+            #ax_eig[1].plot(z, weight*w[i_brunt+gw,:].imag, linestyle='dashed', color=colors[i_color])
+
 
             ax[0].plot(k[0], ω[i_sort][i_brunt+gw], marker='o', color=colors[i_color], alpha=0.5, markersize=10, zorder=3)
             ax[0].plot(k[0], ω[i_sort][i_brunt+ac], marker='o', color=colors[i_color], alpha=0.5, markersize=10, zorder=3)

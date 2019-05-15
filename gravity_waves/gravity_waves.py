@@ -37,7 +37,7 @@ atmosphere_file.close()
 
 gamma = 5/3
 
-nz_waves = 64 #256 #256 produces good results
+nz_waves = 256 #256 produces good results
 z_basis = de.Chebyshev('z', nz_waves, interval=(0,Lz))
 domain_EVP = de.Domain([z_basis], comm=MPI.COMM_SELF)
 waves = de.EVP(domain_EVP, ['u','w','T1','ln_rho1', 'w_z'], eigenvalue='omega')
@@ -92,15 +92,15 @@ waves.add_bc('left(w) = 0')
 waves.add_bc('right(w) = 0')
 
 # value at top of atmosphere in isothermal layer
-brunt = np.sqrt(np.abs(brunt2[-1])) # top in non-field grid
+brunt_max = np.max(np.sqrt(np.abs(brunt2))) # max value in atmosphere
 k_Hρ = -1/2*del_ln_rho0['g'][0].real
 c_s = np.sqrt(T0['g'][0].real)
 
-logger.info("max(brunt) = {}".format(np.sqrt(np.max(brunt2))))
-logger.info("Brunt is |N| = {} and  k_Hρ is {}".format(brunt, k_Hρ))
+logger.info("max Brunt is |N| = {} and  k_Hρ is {}".format(brunt_max, k_Hρ))
 start_time = time.time()
 EP = Eigenproblem(waves)
 ks = np.logspace(-1,2, num=20)*k_Hρ
+ks = [17.5]
 freqs = []
 eigenfunctions = {'w':[], 'u':[], 'T':[]}
 omega = {'ω_plus_min':[], 'ω_minus_max':[]}
@@ -122,7 +122,7 @@ for i, k in enumerate(ks):
     EP.solve()
     EP.reject_spurious()
     ω = EP.evalues_good
-    ax.plot([k]*len(ω), np.abs(ω.real)/brunt, marker='x', linestyle='none')
+    ax.plot([k]*len(ω), np.abs(ω.real)/brunt_max, marker='x', linestyle='none')
     freqs.append(ω)
     eigenfunctions['w'].append([])
     eigenfunctions['u'].append([])
@@ -132,19 +132,18 @@ for i, k in enumerate(ks):
     for ikk, ik in enumerate(EP.evalues_good_index):
         EP.solver.set_state(ik)
         w = EP.solver.state['w']
+        i_max = np.argmax(np.abs(w['g']))
+        phase_correction = w['g'][i_max]
+        w['g'] /= phase_correction
         KE['g'] = 0.5*rho0['g']*(w['g']*np.conj(w['g'])).real
         KE_avg = (KE.integrate('z')['g'][0]/Lz).real
         weight = np.sqrt(KE_avg/(0.5*rho0_avg))
         eigenfunctions['w'][i].append(np.copy(w['g'])/weight)
         u = EP.solver.state['u']
-        KE['g'] = 0.5*rho0['g']*(u['g']*np.conj(u['g'])).real
-        KE_avg = (KE.integrate('z')['g'][0]/Lz).real
-        weight = np.sqrt(KE_avg/(0.5*rho0_avg))
+        u['g'] /= phase_correction
         eigenfunctions['u'][i].append(np.copy(u['g'])/weight)
         T = EP.solver.state['T1']
-        KE['g'] = rho0['g']*(T['g'])
-        KE_avg = (KE.integrate('z')['g'][0]/Lz).real
-        weight = KE_avg/rho0_avg
+        T['g'] /= phase_correction
         eigenfunctions['T'][i].append(np.copy(T['g'])/weight)
 
 
@@ -157,7 +156,7 @@ with h5py.File('wave_frequencies.h5','w') as outfile:
     scale_group = outfile.create_group('scales')
 
     scale_group.create_dataset('grid',data=ks)
-    scale_group.create_dataset('brunt', data=brunt)
+    scale_group.create_dataset('brunt_max', data=brunt_max)
     scale_group.create_dataset('k_Hρ',  data=k_Hρ)
     scale_group.create_dataset('c_s',   data=c_s)
     scale_group.create_dataset('z',   data=z)
