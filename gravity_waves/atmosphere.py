@@ -69,11 +69,12 @@ problem.parameters['Lz'] = Lz
 problem.parameters['gamma'] = gamma
 problem.parameters['ε'] = ε
 problem.parameters['Q'] = Q
+problem.parameters['F'] = 0 #1e-5
 problem.parameters['lnT0'] = lnT0 = 0
 problem.parameters['lnρ0'] = lnρ0 = m*lnT0
 problem.substitutions['ρκ(ln_rho,ln_T)'] = "exp(ln_rho*(a+1)+ln_T*(b))"
 problem.add_equation("dz(ln_T) = -Q*exp(ln_rho*(a+1)+ln_T*(b-4))")
-problem.add_equation("dz(ln_T) + dz(ln_rho) = -g*exp(-ln_T)")
+problem.add_equation("dz(ln_T) + dz(ln_rho) = -g*(1+F*exp(a*ln_rho+b*ln_T))*exp(-ln_T)")
 problem.add_bc("left(ln_T)   = lnT0")
 problem.add_bc("left(ln_rho) = lnρ0")
 
@@ -151,6 +152,26 @@ brunt2 = domain.new_field()
 brunt2['g'] = diagnostics['dsdz_Cp']['g']*g
 brunt2.set_scales(domain.dealias, keep_data=True)
 
+Cs = domain.new_field()
+Cs_z = domain.new_field()
+Cs_zz = domain.new_field()
+Cs.set_scales(domain.dealias)
+Cs['g'] = np.sqrt(gamma)*np.exp(ln_T['g']*0.5)
+Cs.differentiate('z', out=Cs_z)
+Cs_z.differentiate('z', out=Cs_zz)
+ω_ac2 = domain.new_field()
+ω_ac2.set_scales(domain.dealias)
+ω_ac2['g'] = Cs['g']*Cs_zz['g'] + gamma**2*g**2/(4*Cs['g']**2)
+ω_lamb2 = domain.new_field()
+ω_lamb2.set_scales(domain.dealias)
+ω_lamb2['g'] = 17.5**2*Cs['g']**2
+ω_plus2 = domain.new_field()
+ω_plus2.set_scales(domain.dealias)
+ω_minus2 = domain.new_field()
+ω_minus2.set_scales(domain.dealias)
+ω_plus2['g'] = ω_lamb2['g'] + ω_ac2['g']
+ω_minus2['g'] = brunt2['g']*ω_lamb2['g']/(ω_lamb2['g'] + ω_ac2['g'])
+
 dtau = domain.new_field()
 tau = domain.new_field()
 tau.set_scales(domain.dealias)
@@ -184,16 +205,27 @@ ax1.legend(lines1+lines2, labels1+labels2, loc='center left', frameon=False)
 plt.setp(ax1.get_xticklabels(), visible=False)
 
 ax = fig.add_subplot(2,1,2, sharex=ax1)
-ax.plot(z_diag, diagnostics['s_Cp']['g'], label=r'$s/c_P$')
-ax.set_ylabel(r"$s/c_P$")
+#ax.plot(z_diag, diagnostics['s_Cp']['g'], color='black', label=r'$s/c_P$')
+#ax.set_ylabel(r"$s/c_P$")
 ax2 = ax.twinx()
-ax2.plot(z, brunt2['g'], color='black', linestyle='dashed', label=r'$N^2$')
-ax2.plot(z_phot, brunt2['g'][i_tau_23], marker='o', color='black', alpha=70)
-ax2.set_ylabel(r'$N^2$')
-ax.set_xlabel(r'height $z$')
+max_N2 = np.max(brunt2['g'])
+ax.plot(z, np.sqrt(ω_ac2['g']/max_N2), color='darkblue', linestyle='dashed', label=r'$\omega_\mathrm{ac}$')
+ax.plot(z, np.sqrt(ω_lamb2['g']/max_N2), color='seagreen', linestyle='dashed', label=r'$\omega_\mathrm{L}$')
+ax.plot(z, np.sqrt(ω_plus2['g']/max_N2), color='steelblue', label=r'$\omega_+$')
+ax.plot(z, np.sqrt(ω_minus2['g']/max_N2), color='firebrick', label=r'$\omega_-$')
+ax.fill_between(z, np.sqrt(ω_plus2['g']/max_N2), y2=np.max(np.sqrt(ω_lamb2['g']/max_N2)), color='steelblue', alpha=0.3)
+ax.fill_between(z, np.sqrt(ω_minus2['g']/max_N2), y2=0, color='firebrick', alpha=0.3)
+ax.set_ylabel(r'$\omega/\max(N)$')
+ax2.set_ylabel(r'$N$')
+ax2.plot(z_phot, np.sqrt(brunt2['g'][i_tau_23]), marker='o', color='black', alpha=70)
+ax2.plot(z, np.sqrt(brunt2['g']), color='black', linestyle='dashed', label=r'$N$')
+#ax2.set_yscale('log')
+#ax2.set_ylim(5e-1, 5e1)
+ax2.set_xlabel(r'height $z$')
 lines1, labels1 = ax.get_legend_handles_labels()
 lines2, labels2 = ax2.get_legend_handles_labels()
-ax.legend(lines1+lines2, labels1+labels2, loc='center left', frameon=False)
+legend=ax.legend(lines2+lines1, labels2+labels1, loc='center left', frameon=False, ncol=2)
+legend.get_frame().set_linewidth(0.0)
 plt.tight_layout()
 plt.subplots_adjust(hspace=0.05)
 fig.savefig('atmosphere_a{}_b{}_eps{}_part1.pdf'.format(a,b,ε))
@@ -217,12 +249,6 @@ error = domain.new_field()
 error.set_scales(domain.dealias)
 error['g'] = np.abs(ln_T['g']-ln_T_analytic)
 print("L2 norm between calculated and analytic solution {:g}".format(error.integrate('z')['g'][0]))
-
-fig = plt.figure(figsize=(width, width/1.6*0.5))
-ax = fig.add_subplot(1,1,1)
-ax.plot(ln_P, ln_T['g']-ln_T_analytic)
-
-
 
 fig = plt.figure()
 ax = fig.add_subplot(2,1,1)
