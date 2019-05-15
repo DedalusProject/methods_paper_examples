@@ -56,15 +56,15 @@ problem.parameters['gamma'] = gamma
 problem.parameters['c_v'] = c_v
 problem.parameters['T0'] = T0 = 1./gamma
 
-problem.add_equation("dt(u) + dx(T) + T0*dx(logrho) + viscous_u_lhs = -T*dx(logrho) - (u*dx(u) + v*dy(u)) + viscous_u_rhs + (bx*dx(bx) + by*dy(bx) - dx(p_m))/exp(logrho)")
-problem.add_equation("dt(v) + dy(T) + T0*dy(logrho) + viscous_v_lhs = -T*dy(logrho) - (u*dx(v) + v*dy(v)) + viscous_v_rhs + (bx*dx(by) + by*dy(by) - dy(p_m))/exp(logrho)")
+problem.add_equation("dt(u) + dx(T) + T0*dx(logrho) + viscous_u_lhs = -T*dx(logrho) - (u*dx(u) + v*dy(u)) + viscous_u_rhs + (bx*dx(bx) + by*dy(bx) - dx(p_m))*exp(-logrho)")
+problem.add_equation("dt(v) + dy(T) + T0*dy(logrho) + viscous_v_lhs = -T*dy(logrho) - (u*dx(v) + v*dy(v)) + viscous_v_rhs + (bx*dx(by) + by*dy(by) - dy(p_m))*exp(-logrho)")
 
 problem.add_equation("dt(logrho) + div_u = - u*dx(logrho) - v*dy(logrho)")
 
 problem.add_equation("dt(T) + (gamma-1)*T0*div_u - chi/c_v*dx(dx(T)) - chi/c_v*dy(dy(T))  = " +
                       " - u*dx(T) - v*dy(T) - (gamma-1)*T*div_u + chi/c_v*dx(T)*dx(logrho) + chi/c_v*dy(T)*dy(logrho)" +
                       " + nu/c_v*viscous_heating" +
-                      " + eta/c_v*ohmic_heating")
+                      " + eta/c_v*ohmic_heating*exp(-logrho)")
 
 problem.add_equation("dt(A) - eta*(dx(dx(A)) + dy(dy(A))) = u*by - v*bx")
 
