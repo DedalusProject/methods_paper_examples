@@ -44,13 +44,13 @@ m = m_poly
 logger.info("m={}, m_ad = {}, m_poly=(3-{})/(1+{})={}".format(m, m_ad, b, a, m_poly))
 
 fudge_factor = 1.25
-ln_Teff = -1
+ln_Teff = -2
 f = 1/3
 q = 2/3
 τ0 = 4*f*np.exp(-4*ln_Teff*fudge_factor) - q
 ε = q/τ0
 
-Lz = 2 ; Q = 1-ε
+Lz = 1.25 ; Q = 1-ε
 
 logger.info("Target atmosphere has ln_Teff = {} and τ0 = {:g} for ε = {:g}".format(ln_Teff, τ0, ε))
 
@@ -69,11 +69,12 @@ problem.parameters['Lz'] = Lz
 problem.parameters['gamma'] = gamma
 problem.parameters['ε'] = ε
 problem.parameters['Q'] = Q
+problem.parameters['F'] = 0 #1e-5
 problem.parameters['lnT0'] = lnT0 = 0
 problem.parameters['lnρ0'] = lnρ0 = m*lnT0
 problem.substitutions['ρκ(ln_rho,ln_T)'] = "exp(ln_rho*(a+1)+ln_T*(b))"
 problem.add_equation("dz(ln_T) = -Q*exp(ln_rho*(a+1)+ln_T*(b-4))")
-problem.add_equation("dz(ln_T) + dz(ln_rho) = -g*exp(-ln_T)")
+problem.add_equation("dz(ln_T) + dz(ln_rho) = -g*(1+F*exp(a*ln_rho+b*ln_T))*exp(-ln_T)")
 problem.add_bc("left(ln_T)   = lnT0")
 problem.add_bc("left(ln_rho) = lnρ0")
 
@@ -143,12 +144,33 @@ if do_plot:
     ax.set_ylabel("lnT")
     ax2.plot(z, ln_rho['g'], label='lnrho', linestyle='dashed')
     ax2.set_ylabel("lnrho")
+    ax.set_title("iterative convergence of atmosphere")
 
 logger.info("converged in {:d} iter and in {:g} seconds".format(iter, end_time-start_time))
 
 brunt2 = domain.new_field()
 brunt2['g'] = diagnostics['dsdz_Cp']['g']*g
 brunt2.set_scales(domain.dealias, keep_data=True)
+
+Cs = domain.new_field()
+Cs_z = domain.new_field()
+Cs_zz = domain.new_field()
+Cs.set_scales(domain.dealias)
+Cs['g'] = np.sqrt(gamma)*np.exp(ln_T['g']*0.5)
+Cs.differentiate('z', out=Cs_z)
+Cs_z.differentiate('z', out=Cs_zz)
+ω_ac2 = domain.new_field()
+ω_ac2.set_scales(domain.dealias)
+ω_ac2['g'] = Cs['g']*Cs_zz['g'] + gamma**2*g**2/(4*Cs['g']**2)
+ω_lamb2 = domain.new_field()
+ω_lamb2.set_scales(domain.dealias)
+ω_lamb2['g'] = 17.5**2*Cs['g']**2
+ω_plus2 = domain.new_field()
+ω_plus2.set_scales(domain.dealias)
+ω_minus2 = domain.new_field()
+ω_minus2.set_scales(domain.dealias)
+ω_plus2['g'] = ω_lamb2['g'] + ω_ac2['g']
+ω_minus2['g'] = brunt2['g']*ω_lamb2['g']/(ω_lamb2['g'] + ω_ac2['g'])
 
 dtau = domain.new_field()
 tau = domain.new_field()
@@ -167,26 +189,66 @@ ln_rho_bot = ln_rho.interpolate(z=0)['g'][0]
 ln_rho_top = ln_rho.interpolate(z=Lz)['g'][0]
 logger.info("n_rho = {:.3g}".format(ln_rho_bot - ln_rho_top))
 
-
-fig = plt.figure()
-ax = fig.add_subplot(2,1,1)
-ax.plot(z, ln_T['g'], label='T')
-ax.set_ylabel(r"$\ln T$")
-ax.plot(z_phot, ln_T['g'][i_tau_23], marker='o')
-ax2 = ax.twinx()
-ax2.plot(z, ln_rho['g'], label=r'$\ln \rho$', linestyle='dashed')
-ax2.plot(z, ln_rho['g']+ln_T['g'], label=r'$\ln P$', linestyle='dashed')
+width = 6.4
+fig = plt.figure(figsize=(width, width/1.6))
+ax1 = fig.add_subplot(2,1,1)
+ax1.plot(z, ln_T['g'], label=r'$\ln T$')
+ax1.plot(z_phot, ln_T['g'][i_tau_23], marker='o', color='black', alpha=70)
+ax1.set_ylabel(r"$\ln T$")
+ax2 = ax1.twinx()
+ax2.plot(z, ln_rho['g'], label=r'$\ln \rho$', linestyle='dashed', color='firebrick')
+ax2.plot(z, ln_rho['g']+ln_T['g'], label=r'$\ln P$', linestyle='dashed', color='darkgreen')
 ax2.set_ylabel(r"$\ln \rho, \ln P$")
-ax = fig.add_subplot(2,1,2)
-ax.plot(z_diag, diagnostics['s_Cp']['g'], label=r'$s/c_P$')
-ax.plot(z_diag, diagnostics['dsdz_Cp']['g'], label=r'$\nabla s/c_P$')
-ax.set_ylabel(r"$s/c_P$ and $\nabla s/c_P$")
+lines1, labels1 = ax1.get_legend_handles_labels()
+lines2, labels2 = ax2.get_legend_handles_labels()
+ax1.legend(lines1+lines2, labels1+labels2, loc='center left', frameon=False)
+plt.setp(ax1.get_xticklabels(), visible=False)
+
+ax = fig.add_subplot(2,1,2, sharex=ax1)
+#ax.plot(z_diag, diagnostics['s_Cp']['g'], color='black', label=r'$s/c_P$')
+#ax.set_ylabel(r"$s/c_P$")
 ax2 = ax.twinx()
-ax2.plot(z, brunt2['g'], color='black', linestyle='dashed')
-ax2.plot(z_phot, brunt2['g'][i_tau_23], marker='o', color='black')
-ax2.set_ylabel(r'$N^2$')
-ax.legend()
-fig.savefig('atmosphere_a{}_b{}_eps{}.png'.format(a,b,ε), dpi=600)
+max_N2 = np.max(brunt2['g'])
+ax.plot(z, np.sqrt(ω_ac2['g']/max_N2), color='darkblue', linestyle='dashed', label=r'$\omega_\mathrm{ac}$')
+ax.plot(z, np.sqrt(ω_lamb2['g']/max_N2), color='seagreen', linestyle='dashed', label=r'$\omega_\mathrm{L}$')
+ax.plot(z, np.sqrt(ω_plus2['g']/max_N2), color='steelblue', label=r'$\omega_+$')
+ax.plot(z, np.sqrt(ω_minus2['g']/max_N2), color='firebrick', label=r'$\omega_-$')
+ax.fill_between(z, np.sqrt(ω_plus2['g']/max_N2), y2=np.max(np.sqrt(ω_lamb2['g']/max_N2)), color='steelblue', alpha=0.3)
+ax.fill_between(z, np.sqrt(ω_minus2['g']/max_N2), y2=0, color='firebrick', alpha=0.3)
+ax.set_ylabel(r'$\omega/\max(N)$')
+ax2.set_ylabel(r'$N$')
+ax2.plot(z_phot, np.sqrt(brunt2['g'][i_tau_23]), marker='o', color='black', alpha=70)
+ax2.plot(z, np.sqrt(brunt2['g']), color='black', linestyle='dashed', label=r'$N$')
+#ax2.set_yscale('log')
+#ax2.set_ylim(5e-1, 5e1)
+ax2.set_xlabel(r'height $z$')
+lines1, labels1 = ax.get_legend_handles_labels()
+lines2, labels2 = ax2.get_legend_handles_labels()
+legend=ax.legend(lines2+lines1, labels2+labels1, loc='center left', frameon=False, ncol=2)
+legend.get_frame().set_linewidth(0.0)
+plt.tight_layout()
+plt.subplots_adjust(hspace=0.05)
+fig.savefig('atmosphere_a{}_b{}_eps{}_part1.pdf'.format(a,b,ε))
+
+fig = plt.figure(figsize=(width, width/1.6*0.5))
+ax = fig.add_subplot(1,1,1)
+ln_P = ln_rho['g']+ln_T['g']
+ax.plot(ln_P, ln_T['g'], label=r'$\ln T$')
+ln_T_top_analytic = 1/(4*fudge_factor)*np.log(ε/(1+ε))
+print("ln_T_top: {:g} and analytic {:g}".format(ln_T_top, ln_T_top_analytic))
+ln_T_analytic = np.log((Q*np.exp(ln_P*(1+a)) + np.exp(ln_T_top_analytic*(4+1-b)))**(1/(4+a-b)))
+ax.plot(ln_P, ln_T_analytic, linestyle='dashed', label=r'$\ln T_\mathrm{analytic}$')
+
+ax.set_ylabel(r'$\ln T$')
+ax.set_xlabel(r'$\ln P$')
+ax.legend(frameon=False)
+plt.tight_layout()
+fig.savefig('atmosphere_a{}_b{}_eps{}_part2.pdf'.format(a,b,ε))
+
+error = domain.new_field()
+error.set_scales(domain.dealias)
+error['g'] = np.abs(ln_T['g']-ln_T_analytic)
+print("L2 norm between calculated and analytic solution {:g}".format(error.integrate('z')['g'][0]))
 
 fig = plt.figure()
 ax = fig.add_subplot(2,1,1)
@@ -205,6 +267,8 @@ print("ln_T_top: {:g} and analytic {:g}".format(ln_T_top, ln_T_top_analytic))
 ax.plot(lnP,
         np.log((Q*np.exp(lnP*(1+a)) + np.exp(ln_T_top_analytic*(4+1-b)))**(1/(4+a-b))),
         linestyle='dashed')
+ax.plot(lnP,
+        np.log((Q/(m+1)*(1+a)/(4+a-b)*np.exp(lnP*(1+a)))**(1/(4+a-b))), linestyle='dotted')
 
 ax.set_ylabel(r'$\ln T$')
 ax.set_xlabel(r'$\ln P$')
@@ -215,10 +279,6 @@ one_over_m.set_scales(domain.dealias, keep_data=True)
 ax2.plot(ln_rho['g']+ln_T['g'], one_over_m['g'])
 ax2.axhline(y=1/m, linestyle='dashed', color='black')
 ax2.set_ylabel('1/m')
-
-fig, ax = plt.subplots(nrows=2)
-ax[0].plot(z, np.exp(ln_T['g']))
-ax[1].plot(z, np.exp(ln_rho['g']))
 
 use_evaluator = False
 if use_evaluator:
