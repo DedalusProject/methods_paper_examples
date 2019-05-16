@@ -37,11 +37,11 @@ atmosphere_file.close()
 
 gamma = 5/3
 
-nz_waves = 256 #256 produces good results
+nz_waves = 384 #256 produces good results
 z_basis = de.Chebyshev('z', nz_waves, interval=(0,Lz))
 domain_EVP = de.Domain([z_basis], comm=MPI.COMM_SELF)
 waves = de.EVP(domain_EVP, ['u','w','T1','ln_rho1', 'w_z'], eigenvalue='omega')
-
+n_var = 5
 T0 = domain_EVP.new_field()
 T0_z = domain_EVP.new_field()
 ln_rho0 = domain_EVP.new_field()
@@ -100,7 +100,7 @@ logger.info("max Brunt is |N| = {} and  k_Hρ is {}".format(brunt_max, k_Hρ))
 start_time = time.time()
 EP = Eigenproblem(waves)
 ks = np.logspace(-1,2, num=20)*k_Hρ
-ks = [17.5]
+
 freqs = []
 eigenfunctions = {'w':[], 'u':[], 'T':[]}
 omega = {'ω_plus_min':[], 'ω_minus_max':[]}
@@ -128,22 +128,25 @@ for i, k in enumerate(ks):
     eigenfunctions['u'].append([])
     eigenfunctions['T'].append([])
     w_weights.append([])
-    logger.info("k={:g} ; {:d} good eigenvalues among {:d} fields ({:g}%)".format(k, EP.evalues_good_index.shape[0], 4, EP.evalues_good_index.shape[0]/(4*nz_waves)*100))
+    logger.info("k={:g} ; {:d} good eigenvalues among {:d} fields ({:g}%)".format(k, EP.evalues_good_index.shape[0], n_var, EP.evalues_good_index.shape[0]/(n_var*nz_waves)*100))
     for ikk, ik in enumerate(EP.evalues_good_index):
         EP.solver.set_state(ik)
         w = EP.solver.state['w']
+        u = EP.solver.state['u']
+        T = EP.solver.state['T1']
+
         i_max = np.argmax(np.abs(w['g']))
         phase_correction = w['g'][i_max]
         w['g'] /= phase_correction
-        KE['g'] = 0.5*rho0['g']*(w['g']*np.conj(w['g'])).real
+        u['g'] /= phase_correction
+        T['g'] /= phase_correction
+
+        KE['g'] = 0.5*rho0['g']*(u['g']*np.conj(u['g'])+w['g']*np.conj(w['g'])).real
         KE_avg = (KE.integrate('z')['g'][0]/Lz).real
         weight = np.sqrt(KE_avg/(0.5*rho0_avg))
+
         eigenfunctions['w'][i].append(np.copy(w['g'])/weight)
-        u = EP.solver.state['u']
-        u['g'] /= phase_correction
         eigenfunctions['u'][i].append(np.copy(u['g'])/weight)
-        T = EP.solver.state['T1']
-        T['g'] /= phase_correction
         eigenfunctions['T'][i].append(np.copy(T['g'])/weight)
 
 
