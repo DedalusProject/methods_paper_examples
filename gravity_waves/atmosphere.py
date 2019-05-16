@@ -299,7 +299,7 @@ atmosphere_file['z'] = z_atmosphere
 atmosphere_file['ln_T'] = ln_T['g']
 atmosphere_file['ln_rho'] = ln_rho['g']
 atmosphere_file['brunt_squared'] = brunt2['g']
-atmosphere_file['cs_squared'] = Cs['g']**2
+atmosphere_file['c_s_squared'] = Cs['g']**2
 atmosphere_file['ω_ac_squared'] = ω_ac2['g']
 atmosphere_file.close()
 
