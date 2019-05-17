@@ -43,10 +43,6 @@ m_ad = 1/(gamma-1)
 m = m_poly
 logger.info("m={}, m_ad = {}, m_poly=(3-{})/(1+{})={}".format(m, m_ad, b, a, m_poly))
 
-<<<<<<< HEAD
-fudge_factor = 1.25 #2**0.25
-=======
->>>>>>> waves
 ln_Teff = -2
 f = 1/3
 q = 2/3
