@@ -86,7 +86,7 @@ problem.parameters['gamma'] = gamma
 problem.parameters['ε'] = ε
 problem.parameters['η'] = η
 problem.parameters['Q'] = Q
-problem.parameters['F'] = 0 #1e-5
+problem.parameters['F'] = F = 1e-5 # set to zero for analytic atmosphere comparison
 problem.parameters['lnT0'] = lnT0 = 0
 problem.parameters['lnρ0'] = lnρ0 = m*lnT0
 problem.substitutions['ρκ(ln_rho,ln_T)'] = "exp(ln_rho*(a+1)+ln_T*(b))"
@@ -237,8 +237,7 @@ ax.fill_between(z, np.sqrt(ω_minus2['g']/max_N2), y2=0, color='firebrick', alph
 ax.set_ylabel(r'$\omega/N$')
 ax.set_xlabel(r'height $z$')
 lines1, labels1 = ax.get_legend_handles_labels()
-lines2, labels2 = ax2.get_legend_handles_labels()
-legend=ax.legend(lines2+lines1, labels2+labels1, loc='center left', frameon=False, ncol=1)
+legend=ax.legend(lines1, labels1, loc='center left', frameon=False, ncol=1)
 legend.get_frame().set_linewidth(0.0)
 plt.tight_layout()
 plt.subplots_adjust(hspace=0.05)
@@ -262,7 +261,7 @@ fig.savefig('atmosphere_a{}_b{}_eps{}_part2.pdf'.format(a,b,ε))
 error = domain.new_field()
 error.set_scales(domain.dealias)
 error['g'] = (ln_T['g']-ln_T_analytic)**2
-print("L2 norm between calculated and analytic solution {:g}".format(np.sqrt(error.integrate('z')['g'][0])))
+print("L2 norm between calculated and analytic solution {:g} (F={:g})".format(np.sqrt(error.integrate('z')['g'][0]),F))
 
 fig = plt.figure()
 ax = fig.add_subplot(2,1,1)
