@@ -33,7 +33,7 @@ b = 0
 #b = -7/2
 #b = 1
 
-nz = 512
+nz = 384
 
 # from Barekat & Brandenburg 2014
 m_poly = (3-b)/(1+a)
