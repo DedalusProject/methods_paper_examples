@@ -43,7 +43,7 @@ m_ad = 1/(gamma-1)
 m = m_poly
 logger.info("m={}, m_ad = {}, m_poly=(3-{})/(1+{})={}".format(m, m_ad, b, a, m_poly))
 
-fudge_factor = 1.25
+fudge_factor = 1.25 #2**0.25
 ln_Teff = -2
 f = 1/3
 q = 2/3
@@ -209,22 +209,19 @@ ax = fig.add_subplot(2,1,2, sharex=ax1)
 #ax.set_ylabel(r"$s/c_P$")
 ax2 = ax.twinx()
 max_N2 = np.max(brunt2['g'])
-ax.plot(z, np.sqrt(ω_ac2['g']/max_N2), color='darkblue', linestyle='dashed', label=r'$\omega_\mathrm{ac}$')
-ax.plot(z, np.sqrt(ω_lamb2['g']/max_N2), color='seagreen', linestyle='dashed', label=r'$\omega_\mathrm{L}$')
+#ax.plot(z, np.sqrt(ω_ac2['g']/max_N2), color='darkblue', linestyle='dashed', label=r'$\omega_\mathrm{ac}$')
+#ax.plot(z, np.sqrt(ω_lamb2['g']/max_N2), color='seagreen', linestyle='dashed', label=r'$\omega_\mathrm{L}$')
 ax.plot(z, np.sqrt(ω_plus2['g']/max_N2), color='steelblue', label=r'$\omega_+$')
+ax.plot(z, np.sqrt(brunt2['g']/max_N2), color='black', linestyle='dashed', label=r'$N$')
+#ax.plot(z_phot, np.sqrt(brunt2['g'][i_tau_23]), marker='o', color='black', alpha=70)
 ax.plot(z, np.sqrt(ω_minus2['g']/max_N2), color='firebrick', label=r'$\omega_-$')
 ax.fill_between(z, np.sqrt(ω_plus2['g']/max_N2), y2=np.max(np.sqrt(ω_lamb2['g']/max_N2)), color='steelblue', alpha=0.3)
 ax.fill_between(z, np.sqrt(ω_minus2['g']/max_N2), y2=0, color='firebrick', alpha=0.3)
-ax.set_ylabel(r'$\omega/\max(N)$')
-ax2.set_ylabel(r'$N$')
-ax2.plot(z_phot, np.sqrt(brunt2['g'][i_tau_23]), marker='o', color='black', alpha=70)
-ax2.plot(z, np.sqrt(brunt2['g']), color='black', linestyle='dashed', label=r'$N$')
-#ax2.set_yscale('log')
-#ax2.set_ylim(5e-1, 5e1)
-ax2.set_xlabel(r'height $z$')
+ax.set_ylabel(r'$\omega/N$')
+ax.set_xlabel(r'height $z$')
 lines1, labels1 = ax.get_legend_handles_labels()
 lines2, labels2 = ax2.get_legend_handles_labels()
-legend=ax.legend(lines2+lines1, labels2+labels1, loc='center left', frameon=False, ncol=2)
+legend=ax.legend(lines2+lines1, labels2+labels1, loc='center left', frameon=False, ncol=1)
 legend.get_frame().set_linewidth(0.0)
 plt.tight_layout()
 plt.subplots_adjust(hspace=0.05)
@@ -247,8 +244,8 @@ fig.savefig('atmosphere_a{}_b{}_eps{}_part2.pdf'.format(a,b,ε))
 
 error = domain.new_field()
 error.set_scales(domain.dealias)
-error['g'] = np.abs(ln_T['g']-ln_T_analytic)
-print("L2 norm between calculated and analytic solution {:g}".format(error.integrate('z')['g'][0]))
+error['g'] = (ln_T['g']-ln_T_analytic)**2
+print("L2 norm between calculated and analytic solution {:g}".format(np.sqrt(error.integrate('z')['g'][0])))
 
 fig = plt.figure()
 ax = fig.add_subplot(2,1,1)
