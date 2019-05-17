@@ -62,7 +62,10 @@ c6 = np.exp(ln_Teff)**4 / 4 / f
 c3_c1 = c6_c4 = (1 - (c6*q)**(1+(a-b)/4)) * (1+a) / (1 + (a-b)/4)
 Q = (m+1) * c3_c1 / 4
 print(Q)
-
+c4 = c6/c6_c4
+c1 = (m+1)
+η = c1/c4
+print(c4, c1, η)
 Lz = 1.25
 
 logger.info("Target atmosphere has ln_Teff = {} and τ0 = {:g} for ε = {:g}".format(ln_Teff, τ0, ε))
@@ -81,6 +84,7 @@ problem.parameters['g'] = g = (m+1)
 problem.parameters['Lz'] = Lz
 problem.parameters['gamma'] = gamma
 problem.parameters['ε'] = ε
+problem.parameters['η'] = η
 problem.parameters['Q'] = Q
 problem.parameters['F'] = 0 #1e-5
 problem.parameters['lnT0'] = lnT0 = 0
@@ -120,7 +124,7 @@ grad_ln_rho.antidifferentiate('z',('left',lnρ0), out=ln_rho)
 diagnostics = solver.evaluator.add_dictionary_handler(group='diagnostics')
 diagnostics.add_task('1/gamma*dz(ln_T) - (gamma-1)/gamma*dz(ln_rho)',name='dsdz_Cp')
 diagnostics.add_task('1/gamma*ln_T - (gamma-1)/gamma*ln_rho',name='s_Cp')
-diagnostics.add_task('-ρκ(ln_rho,ln_T)/ε', name='dτ')
+diagnostics.add_task('-ρκ(ln_rho,ln_T)*η', name='dτ')
 diagnostics.add_task('dz(ln_T)/dz(ln_rho)', name='1/m')
 
 # Iterations
