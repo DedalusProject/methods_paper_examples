@@ -43,14 +43,27 @@ m_ad = 1/(gamma-1)
 m = m_poly
 logger.info("m={}, m_ad = {}, m_poly=(3-{})/(1+{})={}".format(m, m_ad, b, a, m_poly))
 
-fudge_factor = 1.25
 ln_Teff = -2
 f = 1/3
 q = 2/3
+
+# Old Q calculation
+fudge_factor = 1.25
 τ0 = 4*f*np.exp(-4*ln_Teff*fudge_factor) - q
 ε = q/τ0
+Q = 1-ε
+print(Q)
 
-Lz = 1.25 ; Q = 1-ε
+# New Q calculation
+fudge_factor = 1.0
+τ0 = 4*f*np.exp(-4*ln_Teff*fudge_factor) - q
+ε = q/τ0
+c6 = np.exp(ln_Teff)**4 / 4 / f
+c3_c1 = c6_c4 = (1 - (c6*q)**(1+(a-b)/4)) * (1+a) / (1 + (a-b)/4)
+Q = (m+1) * c3_c1 / 4
+print(Q)
+
+Lz = 1.25
 
 logger.info("Target atmosphere has ln_Teff = {} and τ0 = {:g} for ε = {:g}".format(ln_Teff, τ0, ε))
 
