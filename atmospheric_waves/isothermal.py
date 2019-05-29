@@ -1,13 +1,9 @@
 """
-Radiative atmosphere
+Isothermal atmosphere
 
-Solves for an atmosphere in hydrostatic and thermal equilibrium when energy transport is provided by radiation under the Eddington approximation and using a Kramer-like opacity.  The radiative opacity κ depends on the density ρ and temperature T as:
+Solves for an atmosphere in hydrostatic and thermal equilibrium when the atmosphere is purely isothermal.  Used as a reference case for testing wave propagation and eigenfunctions (isothermal stratified atmospheres lead to constant coefficient systems with exact analytic solutions.  See e.g., Brown, Vasil & Zweibel 2012 ApJ or Vasil et al 2013 ApJ for exact solutions).  The computed atmosphere is saved in an HDF5 file "atmosphere.h5".
 
-    κ = κ_0 * ρ^a * T^b
-
-The system is formulated in terms of lnρ and lnT, and the solution utilizes the NLBVP system of Dedalus.  The computed atmosphere is saved in an HDF5 file "atmosphere.h5".
-
-It should take approximately 3 seconds on 1 Haswell core.
+It should take approximately 3 seconds on 1 Skylake core.
 """
 import numpy as np
 from mpi4py import MPI

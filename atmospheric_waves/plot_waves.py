@@ -1,3 +1,10 @@
+"""
+Plot waves
+
+Produces eigenvalue vs horizontal wavenumber plots of waves for all computed horizontal and vertical wavenumbers.  This is analagous to a power spectrum, but without amplitude information.  Both a frequency (ω) and period (1/ω) diagram are produced, as acoustic and internal gravity waves have different patterns in those two diagrams.  Modes are automatically classified into "acoustic" or "gravity" wave branches based on asymptotic ω+ and ω- relationships from Hindman & Zweibel 1994 ApJ and colored appropriately.  An f-mode is also identified.  The resulting diagrams, as used in the methods paper, are stored in "wave_frequency_spectrum.pdf".  Additionally, vertical velocity eigenfunction figures are created for acoustic and gravity wave modes, with coloring matching selected modes in the frequency/period diagrams.  These figures, used in the methods paper, are stored in "wave_eigenfunctions.pdf".
+
+It should take approximately 3 seconds on 1 Skylake core.
+"""
 import matplotlib.pyplot as plt
 import numpy as np
 import h5py
@@ -82,24 +89,31 @@ for i, k1 in enumerate(ks):
         weight = np.sqrt(rho0)
         wc = 'steelblue'
         ax_eig[1].plot(z, weight*w[i_brunt+gw,:].real, color=wc)
-        ax_eig[0].plot(z, weight*w[i_brunt+ac,:].real, color=wc)
+        ax_eig[0].plot(z, weight*w[i_brunt+ac,:].real, color=wc, label=r'$\sqrt{\rho}w$')
         ax_eig[1].plot(z, weight*w[i_brunt+gw,:].imag, linestyle='dashed', color=wc)
         ax_eig[0].plot(z, weight*w[i_brunt+ac,:].imag, linestyle='dashed', color=wc)
 
         uc = 'seagreen'
         ax_eig[1].plot(z, weight*u[i_brunt+gw,:].real, color=uc)
-        ax_eig[0].plot(z, weight*u[i_brunt+ac,:].real, color=uc)
+        ax_eig[0].plot(z, weight*u[i_brunt+ac,:].real, color=uc, label=r'$\sqrt{\rho}u$')
         ax_eig[1].plot(z, weight*u[i_brunt+gw,:].imag, linestyle='dashed', color=uc)
         ax_eig[0].plot(z, weight*u[i_brunt+ac,:].imag, linestyle='dashed', color=uc)
 
         Tc = 'firebrick'
         ax_eig[1].plot(z, weight*T[i_brunt+gw,:].real, color=Tc)
-        ax_eig[0].plot(z, weight*T[i_brunt+ac,:].real, color=Tc)
+        ax_eig[0].plot(z, weight*T[i_brunt+ac,:].real, color=Tc, label=r'$\sqrt{\rho}T$')
         ax_eig[1].plot(z, weight*T[i_brunt+gw,:].imag, linestyle='dashed', color=Tc)
         ax_eig[0].plot(z, weight*T[i_brunt+ac,:].imag, linestyle='dashed', color=Tc)
 
-        ax_eig[1].text(0, 1, 'gravity waves\n'+r'($\omega \leq \omega_-$)', verticalalignment='top', multialignment='center')
-        ax_eig[0].text(0, 1, 'acoustic waves\n'+r'($\omega > \omega_+$)', verticalalignment='top', multialignment='center')
+        ax_eig[1].text(0, 0.5, 'gravity waves\n'+r'($\omega \leq \omega_-$)', verticalalignment='center', multialignment='center')
+        ax_eig[0].text(0, 0.5, 'acoustic waves\n'+r'($\omega > \omega_+$)', verticalalignment='center', multialignment='center')
+
+        legend = ax_eig[0].legend(frameon=False, loc='lower left')
+        for line,text in zip(legend.get_lines(), legend.get_texts()):
+            text.set_color(line.get_color())
+        ax_eig[1].set_xlabel(r'height $z$')
+        plt.tight_layout()
+        plt.subplots_adjust(hspace=0.05)
 
         print("gw {:g}, {:g}".format(ω[i_brunt+gw], 1/ω[i_brunt+gw]))
         print("ac {:g}, {:g}".format(ω[i_brunt+ac], 1/ω[i_brunt+ac]))
@@ -134,8 +148,8 @@ for i, k1 in enumerate(ks):
         legend = ax_eig[0].legend(frameon=False, title=r'frequency $\omega/N$', loc='lower left', ncol=4)
         for line,text in zip(legend.get_lines(), legend.get_texts()):
             text.set_color(line.get_color())
-        ax_eig[1].text(0, 1, 'gravity waves\n'+r'($\omega \leq \omega_-$)', verticalalignment='top', multialignment='center')
-        ax_eig[0].text(0, 1, 'acoustic waves\n'+r'($\omega > \omega_+$)', verticalalignment='top', multialignment='center')
+        ax_eig[1].text(0, 0.5, 'gravity waves\n'+r'($\omega \leq \omega_-$)', verticalalignment='center', multialignment='center')
+        ax_eig[0].text(0, 0.5, 'acoustic waves\n'+r'($\omega > \omega_+$)', verticalalignment='center', multialignment='center')
         ax_eig[1].set_xlabel(r'height $z$')
 
 ax[0].plot(ks, ω_lower, color=c_gravity, linestyle='dashed', zorder=1)
@@ -148,7 +162,7 @@ ax[0].set_xscale('log')
 ax[1].plot(ks, 1/ω_lower, color=c_gravity, linestyle='dashed', label=r'$\omega_-$', zorder=1)
 ax[1].axhline(y=1, linestyle='dashed', color='black', label=r'$N$', zorder=1)
 ax[1].plot(ks, 1/ω_upper, color=c_acoustic, linestyle='dashed', label=r'$\omega_+$', zorder=1)
-ax[1].set_xlabel(r'wavenumber $k$')
+ax[1].set_xlabel(r'wavenumber $k_x$')
 ax[1].set_ylabel(r'period $N/\omega$')
 ax[1].set_ylim(0,5.1)
 ax[1].set_xscale('log')

@@ -5,9 +5,9 @@ Solves for an atmosphere in hydrostatic and thermal equilibrium when energy tran
 
     κ = κ_0 * ρ^a * T^b
 
-The system is formulated in terms of lnρ and lnT, and the solution utilizes the NLBVP system of Dedalus.  The computed atmosphere is saved in an HDF5 file "atmosphere.h5".
+The system is formulated in terms of lnρ and lnT, and the solution utilizes the NLBVP system of Dedalus.  The computed atmosphere is saved in an HDF5 file "atmosphere.h5".  This program also produces the plots of the atmosphere used in the methods paper, stored in a file "atmosphere_a#_b#_eps#_part1.pdf", where the values of the a, b and epsilon coefficients are part of the file name.
 
-It should take approximately 3 seconds on 1 Haswell core.
+It should take approximately 30 seconds on 1 Skylake core.
 """
 import numpy as np
 from mpi4py import MPI
@@ -33,7 +33,7 @@ b = 0
 #b = -7/2
 #b = 1
 
-nz = 512
+nz = 384
 
 # from Barekat & Brandenburg 2014
 m_poly = (3-b)/(1+a)
@@ -86,7 +86,7 @@ problem.parameters['gamma'] = gamma
 problem.parameters['ε'] = ε
 problem.parameters['η'] = η
 problem.parameters['Q'] = Q
-problem.parameters['F'] = 0 #1e-5
+problem.parameters['F'] = F = 1e-5 # set to zero for analytic atmosphere comparison
 problem.parameters['lnT0'] = lnT0 = 0
 problem.parameters['lnρ0'] = lnρ0 = m*lnT0
 problem.substitutions['ρκ(ln_rho,ln_T)'] = "exp(ln_rho*(a+1)+ln_T*(b))"
@@ -224,7 +224,7 @@ plt.setp(ax1.get_xticklabels(), visible=False)
 ax = fig.add_subplot(2,1,2, sharex=ax1)
 #ax.plot(z_diag, diagnostics['s_Cp']['g'], color='black', label=r'$s/c_P$')
 #ax.set_ylabel(r"$s/c_P$")
-ax2 = ax.twinx()
+#ax2 = ax.twinx()
 max_N2 = np.max(brunt2['g'])
 #ax.plot(z, np.sqrt(ω_ac2['g']/max_N2), color='darkblue', linestyle='dashed', label=r'$\omega_\mathrm{ac}$')
 #ax.plot(z, np.sqrt(ω_lamb2['g']/max_N2), color='seagreen', linestyle='dashed', label=r'$\omega_\mathrm{L}$')
@@ -237,8 +237,7 @@ ax.fill_between(z, np.sqrt(ω_minus2['g']/max_N2), y2=0, color='firebrick', alph
 ax.set_ylabel(r'$\omega/N$')
 ax.set_xlabel(r'height $z$')
 lines1, labels1 = ax.get_legend_handles_labels()
-lines2, labels2 = ax2.get_legend_handles_labels()
-legend=ax.legend(lines2+lines1, labels2+labels1, loc='center left', frameon=False, ncol=1)
+legend=ax.legend(lines1, labels1, loc='center left', frameon=False, ncol=1)
 legend.get_frame().set_linewidth(0.0)
 plt.tight_layout()
 plt.subplots_adjust(hspace=0.05)
@@ -262,7 +261,7 @@ fig.savefig('atmosphere_a{}_b{}_eps{}_part2.pdf'.format(a,b,ε))
 error = domain.new_field()
 error.set_scales(domain.dealias)
 error['g'] = (ln_T['g']-ln_T_analytic)**2
-print("L2 norm between calculated and analytic solution {:g}".format(np.sqrt(error.integrate('z')['g'][0])))
+print("L2 norm between calculated and analytic solution {:g} (F={:g})".format(np.sqrt(error.integrate('z')['g'][0]),F))
 
 fig = plt.figure()
 ax = fig.add_subplot(2,1,1)
