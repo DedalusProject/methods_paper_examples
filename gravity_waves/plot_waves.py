@@ -1,3 +1,10 @@
+"""
+Plot waves
+
+Produces eigenvalue vs horizontal wavenumber plots of waves for all computed horizontal and vertical wavenumbers.  This is analagous to a power spectrum, but without amplitude information.  Both a frequency (ω) and period (1/ω) diagram are produced, as acoustic and internal gravity waves have different patterns in those two diagrams.  Modes are automatically classified into "acoustic" or "gravity" wave branches based on asymptotic ω+ and ω- relationships from Hindman & Zweibel 1994 ApJ and colored appropriately.  An f-mode is also identified.  The resulting diagrams, as used in the methods paper, are stored in "wave_frequency_spectrum.pdf".  Additionally, vertical velocity eigenfunction figures are created for acoustic and gravity wave modes, with coloring matching selected modes in the frequency/period diagrams.  These figures, used in the methods paper, are stored in "wave_eigenfunctions.pdf".
+
+It should take approximately 3 seconds on 1 Skylake core.
+"""
 import matplotlib.pyplot as plt
 import numpy as np
 import h5py

@@ -5,9 +5,9 @@ Solves for an atmosphere in hydrostatic and thermal equilibrium when energy tran
 
     κ = κ_0 * ρ^a * T^b
 
-The system is formulated in terms of lnρ and lnT, and the solution utilizes the NLBVP system of Dedalus.  The computed atmosphere is saved in an HDF5 file "atmosphere.h5".
+The system is formulated in terms of lnρ and lnT, and the solution utilizes the NLBVP system of Dedalus.  The computed atmosphere is saved in an HDF5 file "atmosphere.h5".  This program also produces the plots of the atmosphere used in the methods paper, stored in a file "atmosphere_a#_b#_eps#_part1.pdf", where the values of the a, b and epsilon coefficients are part of the file name.
 
-It should take approximately 3 seconds on 1 Haswell core.
+It should take approximately 30 seconds on 1 Skylake core.
 """
 import numpy as np
 from mpi4py import MPI
