@@ -1,9 +1,9 @@
 """
 Gravity waves
 
-Describe the problem briefly.
+Solves linearized, ideal, fully compressible wave problem to obtain frequencies and eigenfunmctions.  This solves the dense eigenvalue problem to obtain all "good" eigenvalue/eigenfunction pairs (at all "good" vertical wavenumbers), at a selection of different horizontal wavenumbes kx.  Eigentools is used to assess whether eigenvalues are "good".  Eigenfunctions are normalized under a kinetic energy weight and are rotated in a consistent fashion within the complex space.  Accepted eigenvalue/eigenfunction pairs are stored in HDF5 file "wave_frequencies.h5", along with various bits of atmosphere metadata that is helpful in later analysis.
 
-It should take approximately X hours on Y (Ivy Bridge/Haswell/Broadwell/Skylake/etc) cores.
+It should take approximately 6 hours on 1 Skylake core.
 """
 import numpy as np
 from mpi4py import MPI
@@ -37,7 +37,7 @@ atmosphere_file.close()
 
 gamma = 5/3
 
-nz_waves = 384 #256 produces good results
+nz_waves = 384
 z_basis = de.Chebyshev('z', nz_waves, interval=(0,Lz))
 domain_EVP = de.Domain([z_basis], comm=MPI.COMM_SELF)
 waves = de.EVP(domain_EVP, ['u','w','T1','ln_rho1', 'w_z'], eigenvalue='omega')
