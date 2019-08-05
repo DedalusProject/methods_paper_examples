@@ -49,6 +49,7 @@ U = domain.new_field()
 U.meta['x','y']['constant'] = True
 U['g'] = S*z
 
+# Vertically-dependent stratification parameter
 Gamma = domain.new_field()
 Gamma.meta['x','y']['constant'] = True
 Gamma['g'] = np.exp(2*(z-1))
@@ -111,7 +112,7 @@ P_init, B_init, Q_init = domain.new_fields(3)
 for f in [P_init, B_init, Q_init]:
     f.set_scales(domain.dealias)
 
-#  Might want to think more about this?
+# Filtered noise.
 rand = np.random.RandomState(seed=42)
 gshape = domain.dist.grid_layout.global_shape(scales=domain.dealias)[:2]
 gslices = domain.dist.grid_layout.slices(scales=domain.dealias)[:2]
