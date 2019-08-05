@@ -74,8 +74,6 @@ for i in range(3):
                   linestyles=['solid'],zorder=3)
         cadence = 12
         plot_axes[i].plot(x_hist[:(file_nums[i]-1)*50:cadence],y_hist[:(file_nums[i]-1)*50:cadence], '.', color='C2', zorder=5, lw=lw)
-#        plot_axes[i].plot(x_hist[:(file_nums[i]-1)*50],y_hist[:(file_nums[i]-1)*50], color='C2', zorder=5, lw=lw)
-#        plot_axes[i].plot(x_hist[(file_nums[i]-1)*50],y_hist[(file_nums[i]-1)*50], 'o', color='0.5', zorder=5, lw=lw)
         plot_axes[i].axis([-4,12,-3.9,1.1])
         plot_axes[i].axis('off')
 
