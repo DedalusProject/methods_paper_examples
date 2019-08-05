@@ -37,7 +37,6 @@ z_basis = de.Chebyshev('z', Nz, interval=(0, H), dealias=3/2)
 domain = de.Domain([x_basis,y_basis,z_basis], np.float64, mesh=mesh)
 
 # Parameters
-Gamma = 1.
 beta  = 0.1
 r     = 0.16
 S     = 1.
@@ -50,8 +49,12 @@ U = domain.new_field()
 U.meta['x','y']['constant'] = True
 U['g'] = S*z
 
+Gamma = domain.new_field()
+Gamma.meta['x','y']['constant'] = True
+Gamma['g'] = np.exp(2*(z-1))
+
 # variables: pressure, vertical velocity
-problem = de.IVP(domain, variables=['P','W'])
+problem = de.IVP(domain, variables=['P','W'],ncc_cutoff=1e-8)
 problem.meta[:]['z']['dirichlet'] = True
 
 # horizontal velocity perturbations
@@ -149,7 +152,12 @@ init_solver.state['W'].set_scales(domain.dealias)
 W['g'] = init_solver.state['W']['g']
 
 # Analysis
-snap = solver.evaluator.add_file_handler('snapshots', sim_dt=0.2, max_writes=10)
+dumps = solver.evaluator.add_file_handler('dumps_Gamma', sim_dt = 50, max_writes=1)
+dumps.add_task("B")
+dumps.add_task("zeta")
+dumps.add_task("zeta + dz(B/Gamma)",name='PV')
+
+snap = solver.evaluator.add_file_handler('snapshots_Gamma', sim_dt=0.2, max_writes=10)
 snap.add_task("interp(zeta, z=1)",   name='vorticity-top', scales=4)
 snap.add_task("interp(W,z=1/2)", name='upwelling-mid', scales=4)
 snap.add_task("integ(zeta, 'z')",    name='barotropic', scales=4)
@@ -158,7 +166,7 @@ snap.add_task("interp(B, z=1)", name='buoyancy-top', scales=4)
 snap.add_task("interp(zeta + dz(B/Gamma), z=1)", name='PV-top', scales=4)
 snap.add_task("interp(zeta + dz(B/Gamma), x=0)", name='PV-slice', scales=4)
 
-traces = solver.evaluator.add_file_handler('traces', sim_dt=0.01, max_writes=1000)
+traces = solver.evaluator.add_file_handler('traces_Gamma', sim_dt=0.01, max_writes=1000)
 traces.add_task("integ(B*B/Gamma)",   name='PE')
 traces.add_task("integ(zeta**2)", name='enstrophy')
 traces.add_task("integ(u**2+v**2)",    name='KE')
