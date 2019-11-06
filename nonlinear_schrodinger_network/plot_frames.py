@@ -26,7 +26,7 @@ def plot_writes(filename, start, count, output, axes=None, save=True, dpi=100, a
     # Loop over assigned writes
     with h5py.File(filename, mode='r') as file:
         for index in range(start, start+count):
-            plot_graph(file, index, axes, amp_stretch)
+            plot_graph(file, index, axes, amp_stretch, lw=0, fc='k', alpha=0.75)
             # Remove axes
             axes.set_xlim(-1.1, 1.1)
             axes.set_ylim(-1.1, 1.1)

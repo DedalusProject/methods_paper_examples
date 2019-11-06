@@ -45,8 +45,8 @@ def plot_panel(filename):
             if title:
                 axes.set_title('%.2f' %file['scales']['sim_time'][index], fontsize='large')
     # Save frame
-    fig.savefig('panel.pdf')
-    fig.savefig('panel.png', dpi=400)
+    fig.savefig('fig_nls.pdf' )
+    fig.savefig('fig_nls.jpg', dpi=400)
 
 
 if __name__ == "__main__":
