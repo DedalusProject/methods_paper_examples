@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-python3 plot_fig.py snap_sparse/*.h5
+mpiexec -n 1 python3 plot_fig.py snap_sparse/*.h5

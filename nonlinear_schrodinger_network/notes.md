@@ -1,34 +1,17 @@
 # Nonlinear Schrodinger Network  #
 
-
 ## Problem Statement ##
 
-Brief statement of problem and why it's included.
+These scripts solve the nonlinear Schrodinger equation on a network.
+It demonstrates the ability of Dedalus to solve complex-valued PDEs and to solve PDEs on networks of 1D segments, akin to a spectral element method.
+The implementation demonstrates how the Dedalus equation interface can be programatically extended to include complex equations.
 
-### Resolution ###
+## Execution ##
 
-```
-nx = 
-ny =
-nz =
-```
+1. To run the simulation, run `run_problems.sh`. The script should run in approximately 1 cpu-hrs.
 
-This test runs on <<N>> cores and should run in approximately <<Y>> hours on <<Z>> machine.
+2. After success, run `run_analysis.sh` to produce figure X in the methods paper (Burns et al. 2019).
 
-## To Run ##
-
-1. on a system of sufficent size, run 
-
-run_problem.sh
-
-2. after success, run 
-
-run_analysis.sh
-
-**This should produce figure <<X>> in Burns et al (2018).**
-
-## Reference ##
-
-Author, I. M. "Title of Paper", Journal of Great Results (2018) vol. 1, p.1-10
+3. Optionally, run `run_extras.sh` to produce frames for a video of the solution.
 
 
