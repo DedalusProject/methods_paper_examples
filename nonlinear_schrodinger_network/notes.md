@@ -8,7 +8,7 @@ The implementation demonstrates how the Dedalus equation interface can be progra
 
 ## Execution ##
 
-1. To run the simulation, run `run_problems.sh`. The script should run in approximately 1 cpu-hrs.
+1. To run the simulation, run `run_problems.sh`. The script should run serially in approximately 20 minutes.
 
 2. After success, run `run_analysis.sh` to produce figure X in the methods paper (Burns et al. 2019).
 
