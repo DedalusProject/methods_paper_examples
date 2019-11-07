@@ -18,6 +18,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from mpi4py import MPI
 
 import time
 import logging
@@ -30,7 +31,11 @@ from dedalus.extras import flow_tools
 Lx, Ly, H  = 40, 20, 1
 Nx, Ny, Nz = 256, 128, 32
 
-mesh = [8,16]
+if MPI.COMM_WORLD.size > (Nx // 2):
+    mesh = [(Nx // 2), MPI.COMM_WORLD.size // (Nx // 2)]
+else:
+    mesh = None 
+
 x_basis =   de.Fourier('x', Nx, interval=(-Lx, Lx), dealias=3/2)
 y_basis =   de.Fourier('y', Ny, interval=(-Ly, Ly), dealias=3/2)
 z_basis = de.Chebyshev('z', Nz, interval=(0, H), dealias=3/2)

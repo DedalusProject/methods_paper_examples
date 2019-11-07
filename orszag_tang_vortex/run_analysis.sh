@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-python3 density_profile.py
-python3 density_slice.py
+mpiexec -n 1 python3 density_profile.py
+mpiexec -n 1 python3 density_slice.py
 
