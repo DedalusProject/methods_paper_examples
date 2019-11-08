@@ -21,7 +21,7 @@ f.close()
 xm, ym = plot_tools.quad_mesh(x, y)
 fig = plt.figure(figsize=(3.4, 3.8))
 slice_axis = fig.add_subplot(111)
-im = slice_axis.pcolormesh(xm, ym, rho.T, cmap='gray_r')
+im = slice_axis.pcolormesh(xm, ym, rho.T, cmap='gray_r', rasterized=True)
 slice_axis.axis([0,1,0,1])
 slice_axis.set_xlabel(r'$x$')
 slice_axis.set_ylabel(r'$y$')
@@ -38,6 +38,6 @@ slice_axis.set_aspect('equal')
 
 # Save
 plt.tight_layout(pad=0.2)
-plt.savefig('fig_OT_image.jpg', dpi=400)
+plt.savefig('fig_OT_image.pdf', dpi=400)
 
 
