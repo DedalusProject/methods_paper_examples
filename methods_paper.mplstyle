@@ -116,10 +116,10 @@
 # The font.size property is the default font size for text, given in pts.
 # 12pt is the standard value.
 #
-font.family         : sans-serif
+font.family         : serif
 #font.style          : normal
 #font.variant        : normal
-font.weight         : medium
+font.weight         : normal
 #font.stretch        : normal
 # note that font.size controls default text sizes.  To configure
 # special text sizes tick labels, axes, labels, title, etc, see the rc
@@ -127,7 +127,7 @@ font.weight         : medium
 # relative to font.size, using the following values: xx-small, x-small,
 # small, medium, large, x-large, xx-large, larger, or smaller
 #font.size           : 12.0
-#font.serif          : Bitstream Vera Serif, New Century Schoolbook, Century Schoolbook L, Utopia, ITC Bookman, Bookman, Nimbus Roman No9 L, Times New Roman, Times, Palatino, Charter, serif
+font.serif          : Times New Roman #Bitstream Vera Serif, New Century Schoolbook, Century Schoolbook L, Utopia, ITC Bookman, Bookman, Nimbus Roman No9 L, Times New Roman, Times, Palatino, Charter, serif
 #font.serif : Times New Roman
 #font.sans-serif     : Roboto
 #font.cursive        : Apple Chancery, Textile, Zapf Chancery, Sand, cursive
@@ -209,10 +209,10 @@ mathtext.fontset : stix # Should be 'cm' (Computer Modern), 'stix',
 #axes.edgecolor      : black   # axes edge color
 axes.linewidth      : 1.0     # edge linewidth
 #axes.grid           : False   # display grid or not
-#axes.titlesize      : large   # fontsize of the axes title
-axes.titleweight    : medium
-axes.labelsize      : large  # fontsize of the x any y labels
-axes.labelweight    : medium  # weight of the x and y labels
+axes.titlesize      : 10   # fontsize of the axes title
+axes.titleweight    : normal
+axes.labelsize      : 10  # fontsize of the x any y labels
+axes.labelweight    : normal  # weight of the x and y labels
 #axes.labelcolor     : black
 #axes.axisbelow      : False   # whether axis gridlines and ticks are below
                               # the axes elements (lines, text, etc)
