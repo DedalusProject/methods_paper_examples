@@ -4,12 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import h5py
 from mpi4py import MPI
-import publication_settings
 
 rank = MPI.COMM_WORLD.rank
 size = MPI.COMM_WORLD.size
 
-matplotlib.rcParams.update(publication_settings.params)
 
 t_mar, b_mar, l_mar, r_mar = (0.01, 0.01, 0.01, 0.01)
 h_slice, w_slice = (0.3125, 1)
@@ -77,5 +75,5 @@ for i in range(3):
         plot_axes[i].axis([-4,12,-3.9,1.1])
         plot_axes[i].axis('off')
 
-plt.savefig('mag_lev.pdf')
+plt.savefig('fig_maglev.pdf')
 
