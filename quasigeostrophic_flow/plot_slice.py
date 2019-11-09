@@ -5,10 +5,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import h5py
-import publication_settings
 from dedalus.extras import plot_tools
 
-matplotlib.rcParams.update(publication_settings.params)
 
 dpi = 600
 
@@ -46,7 +44,7 @@ for i in range(2):
     height = h_cbar / h_total
     cbar_axes.append(fig.add_axes([left, bottom, width, height]))
 
-f = h5py.File('snapshots/snapshots_s100.h5')
+f = h5py.File('slices/slices_s40.h5')
 
 for a in f['scales/x']: print(a)
 x = np.array(f['scales/x/4'])

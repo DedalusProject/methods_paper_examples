@@ -87,6 +87,9 @@ problem.parameters['U']     = U     # background thermal wind
 problem.parameters['nu']    = nu    # viscosity
 problem.parameters['kappa'] = kappa # thermal viscosity
 
+# PV
+problem.substitutions['PV'] = "zeta + dz(B/Gamma)"
+
 # temperature and vorticity equations
 problem.add_equation("dt(zeta) + U*dx(zeta) +  beta*v -    dz(W) +    nu*HD(zeta)  = -D(zeta)")
 problem.add_equation("dt(B)    + U*dx(B)    - dz(U)*v + Gamma*W  + kappa*HD(B) = -D(B)")
@@ -158,21 +161,23 @@ init_solver.state['W'].set_scales(domain.dealias)
 W['g'] = init_solver.state['W']['g']
 
 # Analysis
-dumps = solver.evaluator.add_file_handler('dumps_Gamma', sim_dt = 50, max_writes=1)
+dumps = solver.evaluator.add_file_handler('snapshots', sim_dt=50, max_writes=1)
 dumps.add_task("B")
 dumps.add_task("zeta")
 dumps.add_task("zeta + dz(B/Gamma)",name='PV')
 
-snap = solver.evaluator.add_file_handler('snapshots_Gamma', sim_dt=0.2, max_writes=10)
-snap.add_task("interp(zeta, z=1)",   name='vorticity-top', scales=4)
+snap = solver.evaluator.add_file_handler('slices', sim_dt=0.5, max_writes=10)
+snap.add_task("interp(zeta, z=1)", name='vorticity-top', scales=4)
 snap.add_task("interp(W,z=1/2)", name='upwelling-mid', scales=4)
-snap.add_task("integ(zeta, 'z')",    name='barotropic', scales=4)
-snap.add_task("interp(zeta, x=0)", name='vorticity-slice', scales=4)
+snap.add_task("integ(zeta, 'z')", name='barotropic', scales=4)
+snap.add_task("interp(zeta, x=0)", name='vorticity-xslice', scales=4)
+snap.add_task("interp(zeta, y=0)", name='vorticity-yslice', scales=4)
 snap.add_task("interp(B, z=1)", name='buoyancy-top', scales=4)
-snap.add_task("interp(zeta + dz(B/Gamma), z=1)", name='PV-top', scales=4)
-snap.add_task("interp(zeta + dz(B/Gamma), x=0)", name='PV-slice', scales=4)
+snap.add_task("interp(PV, z=1)", name='PV-top', scales=4)
+snap.add_task("interp(PV, x=0)", name='PV-xslice', scales=4)
+snap.add_task("interp(PV, y=0)", name='PV-yslice', scales=4)
 
-traces = solver.evaluator.add_file_handler('traces_Gamma', sim_dt=0.01, max_writes=1000)
+traces = solver.evaluator.add_file_handler('traces', sim_dt=0.1, max_writes=1000)
 traces.add_task("integ(B*B/Gamma)",   name='PE')
 traces.add_task("integ(zeta**2)", name='enstrophy')
 traces.add_task("integ(u**2+v**2)",    name='KE')
@@ -188,11 +193,11 @@ CFL.add_velocity('v',1)
 logger.info('Starting loop')
 start_run_time = time.time()
 while solver.ok:
-    if (solver.iteration-1) % 10000 == 0:
+    if (solver.iteration-1) % 1000 == 0:
         for field in solver.state.fields: field.require_grid_space()
     dt = CFL.compute_dt()
     solver.step(dt)
-    if (solver.iteration-1) % 10 == 0:
+    if (solver.iteration-1) % 100 == 0:
         logger.info('Iteration: %i, Time: %e, dt: %e' %(solver.iteration, solver.sim_time, dt))
         logger.info('Max W = %f' %flow.max('W'))
 
