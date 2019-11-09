@@ -1,16 +1,16 @@
 """
     Dedalus script for 3D Quasi-Geostrophic flow.
-    
+
     This script uses Fourier-bases in the x and y directions and Chebyshev in z.
-    
+
     The initial conditions are set based on the pressure.
     A LBVP solves for the balanced vertical velocity.
-    
+
     This script should be ran in parallel, and would be most efficient using a
     2D process mesh.  It uses the built-in analysis framework to save 2D data slices
     in HDF5 files.  The `merge.py` script in this folder can be used to merge
     distributed analysis sets from parallel runs.
-    
+
 """
 
 
@@ -28,16 +28,16 @@ from dedalus import public as de
 from dedalus.extras.plot_tools import quad_mesh, pad_limits
 from dedalus.extras import flow_tools
 
-Lx, Ly, H  = 40, 20, 1
+Lx, Ly, H  = 80, 40, 1
 Nx, Ny, Nz = 256, 128, 32
 
 if MPI.COMM_WORLD.size > (Nx // 2):
     mesh = [(Nx // 2), MPI.COMM_WORLD.size // (Nx // 2)]
 else:
-    mesh = None 
+    mesh = None
 
-x_basis =   de.Fourier('x', Nx, interval=(-Lx, Lx), dealias=3/2)
-y_basis =   de.Fourier('y', Ny, interval=(-Ly, Ly), dealias=3/2)
+x_basis =   de.Fourier('x', Nx, interval=(0, Lx), dealias=3/2)
+y_basis =   de.Fourier('y', Ny, interval=(0, Ly), dealias=3/2)
 z_basis = de.Chebyshev('z', Nz, interval=(0, H), dealias=3/2)
 domain = de.Domain([x_basis,y_basis,z_basis], np.float64, mesh=mesh)
 
@@ -111,10 +111,7 @@ solver.stop_wall_time = np.inf
 
 # Initial conditions
 x,y,z = domain.grids(scales=domain.dealias)
-
-kx = 2*np.pi/Lx
-ky = 2*np.pi/Ly
-kz = 1*np.pi/H
+kz = np.pi / H
 
 P_init, B_init, Q_init = domain.new_fields(3)
 for f in [P_init, B_init, Q_init]:
@@ -167,12 +164,14 @@ dumps.add_task("zeta")
 dumps.add_task("zeta + dz(B/Gamma)",name='PV')
 
 snap = solver.evaluator.add_file_handler('slices', sim_dt=0.5, max_writes=10)
-snap.add_task("interp(zeta, z=1)", name='vorticity-top', scales=4)
 snap.add_task("interp(W,z=1/2)", name='upwelling-mid', scales=4)
 snap.add_task("integ(zeta, 'z')", name='barotropic', scales=4)
+snap.add_task("interp(zeta, z=1)", name='vorticity-top', scales=4)
 snap.add_task("interp(zeta, x=0)", name='vorticity-xslice', scales=4)
 snap.add_task("interp(zeta, y=0)", name='vorticity-yslice', scales=4)
 snap.add_task("interp(B, z=1)", name='buoyancy-top', scales=4)
+snap.add_task("interp(B, x=0)", name='buoyancy-xslice', scales=4)
+snap.add_task("interp(B, y=0)", name='buoyancy-yslice', scales=4)
 snap.add_task("interp(PV, z=1)", name='PV-top', scales=4)
 snap.add_task("interp(PV, x=0)", name='PV-xslice', scales=4)
 snap.add_task("interp(PV, y=0)", name='PV-yslice', scales=4)
