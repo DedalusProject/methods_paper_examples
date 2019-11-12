@@ -9,33 +9,32 @@ The system is formulated in terms of lnρ and lnT, and the solution utilizes the
 
 It should take approximately 30 seconds on 1 Skylake core.
 """
+
 import numpy as np
 from mpi4py import MPI
 import matplotlib.pyplot as plt
 from dedalus import public as de
 import h5py
-
 import time
-
 import logging
 logger = logging.getLogger(__name__)
 
 matplotlib_logger = logging.getLogger('matplotlib')
 matplotlib_logger.setLevel(logging.WARNING)
+plt.style.use('./methods_paper.mplstyle')
 
 comm = MPI.COMM_WORLD
 
+# Parameters
 ncc_cutoff = 1e-13
 tolerance = 1e-8
-
 a = 1
 b = 0
-#b = -7/2
-#b = 1
-
 nz = 384
+IC = 'isothermal' #'polytrope'
+F = 1e-5 # set to zero for analytic atmosphere comparison
 
-# from Barekat & Brandenburg 2014
+# Derived parameters from Barekat & Brandenburg 2014
 m_poly = (3-b)/(1+a)
 
 gamma = 5/3
@@ -74,9 +73,11 @@ tau_0_BB14 = 4e-4*np.array([1e4,1e5,1e6,1e7])*5
 F_over_cE_BB14 = 1/4*(np.array([26600, 16300,9300,5200])/38968)**4
 Q_BB14 = tau_0_BB14*F_over_cE_BB14
 
+# Domain
 z_basis = de.Chebyshev('z', nz, interval=(0,Lz), dealias=2)
 domain = de.Domain([z_basis], np.float64, comm=MPI.COMM_SELF)
 
+# Problem
 problem = de.NLBVP(domain, variables=['ln_T', 'ln_rho'], ncc_cutoff=ncc_cutoff)
 problem.parameters['a'] = a
 problem.parameters['b'] = b
@@ -86,7 +87,7 @@ problem.parameters['gamma'] = gamma
 problem.parameters['ε'] = ε
 problem.parameters['η'] = η
 problem.parameters['Q'] = Q
-problem.parameters['F'] = F = 1e-5 # set to zero for analytic atmosphere comparison
+problem.parameters['F'] = F
 problem.parameters['lnT0'] = lnT0 = 0
 problem.parameters['lnρ0'] = lnρ0 = m*lnT0
 problem.substitutions['ρκ(ln_rho,ln_T)'] = "exp(ln_rho*(a+1)+ln_T*(b))"
@@ -95,7 +96,7 @@ problem.add_equation("dz(ln_T) + dz(ln_rho) = -g*(1+F*exp(a*ln_rho+b*ln_T))*exp(
 problem.add_bc("left(ln_T)   = lnT0")
 problem.add_bc("left(ln_rho) = lnρ0")
 
-# Setup initial guess
+# Initial guess
 solver = problem.build_solver()
 z = domain.grid(0, scales=domain.dealias)
 z_diag = domain.grid(0, scales=1)
@@ -104,7 +105,6 @@ ln_rho = solver.state['ln_rho']
 ln_T.set_scales(domain.dealias)
 ln_rho.set_scales(domain.dealias)
 
-IC = 'isothermal' #'polytrope'
 grad_ln_rho = domain.new_field()
 if IC == 'polytrope':
     import scipy.special as scp
@@ -121,6 +121,7 @@ if IC =='isothermal':
     grad_ln_rho['g'] = -g
 grad_ln_rho.antidifferentiate('z',('left',lnρ0), out=ln_rho)
 
+# Diagnostics
 diagnostics = solver.evaluator.add_dictionary_handler(group='diagnostics')
 diagnostics.add_task('1/gamma*dz(ln_T) - (gamma-1)/gamma*dz(ln_rho)',name='dsdz_Cp')
 diagnostics.add_task('1/gamma*ln_T - (gamma-1)/gamma*ln_rho',name='s_Cp')
@@ -151,7 +152,6 @@ try:
         solver.evaluator.evaluate_group("diagnostics")
         iter += 1
 except:
-    plt.show()
     raise
 
 end_time = time.time()
@@ -162,6 +162,7 @@ if do_plot:
     ax2.plot(z, ln_rho['g'], label='lnrho', linestyle='dashed')
     ax2.set_ylabel("lnrho")
     ax.set_title("iterative convergence of atmosphere")
+    plt.savefig("atmosphere_iterations.pdf")
 
 logger.info("converged in {:d} iter and in {:g} seconds".format(iter, end_time-start_time))
 
@@ -206,19 +207,20 @@ ln_rho_bot = ln_rho.interpolate(z=0)['g'][0]
 ln_rho_top = ln_rho.interpolate(z=Lz)['g'][0]
 logger.info("n_rho = {:.3g}".format(ln_rho_bot - ln_rho_top))
 
-width = 6.4
-fig = plt.figure(figsize=(width, width/1.6))
+# Plot structure
+fig = plt.figure(figsize=(3.4, 2.5))
 ax1 = fig.add_subplot(2,1,1)
-ax1.plot(z, ln_T['g'], label=r'$\ln T$')
-ax1.plot(z_phot, ln_T['g'][i_tau_23], marker='o', color='black', alpha=70)
-ax1.set_ylabel(r"$\ln T$")
+ax1.plot(z, ln_T['g'], label=r'$\ln \,T$', c='C0')
+ax1.plot(z_phot, ln_T['g'][i_tau_23], marker='.', color='black')
+ax1.set_ylabel(r"$\ln \,T$")
 ax2 = ax1.twinx()
-ax2.plot(z, ln_rho['g'], label=r'$\ln \rho$', linestyle='dashed', color='firebrick')
-ax2.plot(z, ln_rho['g']+ln_T['g'], label=r'$\ln P$', linestyle='dashed', color='darkgreen')
-ax2.set_ylabel(r"$\ln \rho, \ln P$")
+ax2.plot(z, ln_rho['g'], label=r'$\ln\,\rho$', linestyle='dashed', c='C1')
+ax2.plot(z, ln_rho['g']+ln_T['g'], label=r'$\ln \,P$', linestyle='dashed', c='C2')
+ax2.set_ylabel(r"$\ln \,\rho, \ln \,P$")
+ax1.set_xlim([0, Lz])
 lines1, labels1 = ax1.get_legend_handles_labels()
 lines2, labels2 = ax2.get_legend_handles_labels()
-ax1.legend(lines1+lines2, labels1+labels2, loc='center left', frameon=False)
+ax1.legend(lines1+lines2, labels1+labels2, loc='lower left', frameon=False, fontsize=8, handlelength=1.8)
 plt.setp(ax1.get_xticklabels(), visible=False)
 
 ax = fig.add_subplot(2,1,2, sharex=ax1)
@@ -228,21 +230,23 @@ ax = fig.add_subplot(2,1,2, sharex=ax1)
 max_N2 = np.max(brunt2['g'])
 #ax.plot(z, np.sqrt(ω_ac2['g']/max_N2), color='darkblue', linestyle='dashed', label=r'$\omega_\mathrm{ac}$')
 #ax.plot(z, np.sqrt(ω_lamb2['g']/max_N2), color='seagreen', linestyle='dashed', label=r'$\omega_\mathrm{L}$')
-ax.plot(z, np.sqrt(ω_plus2['g']/max_N2), color='steelblue', label=r'$\omega_+$')
-ax.plot(z, np.sqrt(brunt2['g']/max_N2), color='black', linestyle='dashed', label=r'$N$')
+ax.plot(z, np.sqrt(ω_plus2['g']/max_N2), color='C0', label=r'$\omega_+$')
 #ax.plot(z_phot, np.sqrt(brunt2['g'][i_tau_23]), marker='o', color='black', alpha=70)
-ax.plot(z, np.sqrt(ω_minus2['g']/max_N2), color='firebrick', label=r'$\omega_-$')
-ax.fill_between(z, np.sqrt(ω_plus2['g']/max_N2), y2=np.max(np.sqrt(ω_lamb2['g']/max_N2)), color='steelblue', alpha=0.3)
-ax.fill_between(z, np.sqrt(ω_minus2['g']/max_N2), y2=0, color='firebrick', alpha=0.3)
-ax.set_ylabel(r'$\omega/N$')
+ax.plot(z, np.sqrt(ω_minus2['g']/max_N2), color='C1', label=r'$\omega_-$')
+ax.plot(z, np.sqrt(brunt2['g']/max_N2), color='black', linestyle='dashed', label=r'$N$')
+ax.fill_between(z, np.sqrt(ω_plus2['g']/max_N2), y2=np.max(np.sqrt(ω_lamb2['g']/max_N2))+1, color='C0', alpha=0.3)
+ax.fill_between(z, np.sqrt(ω_minus2['g']/max_N2), y2=-1, color='C1', alpha=0.3)
+ax.set_ylim([-0.5, 5.5])
+ax.set_ylabel(r'$\omega/N_{\mathrm{max}}$')
 ax.set_xlabel(r'height $z$')
 lines1, labels1 = ax.get_legend_handles_labels()
-legend=ax.legend(lines1, labels1, loc='center left', frameon=False, ncol=1)
+legend=ax.legend(lines1, labels1, loc='center left', frameon=False, ncol=1, fontsize=8, handlelength=1.8)
 legend.get_frame().set_linewidth(0.0)
-plt.tight_layout()
-plt.subplots_adjust(hspace=0.05)
-fig.savefig('atmosphere_a{}_b{}_eps{}_part1.pdf'.format(a,b,ε))
+plt.tight_layout(pad=0.5)
+fig.savefig('fig_waves_atmosphere.pdf')
 
+# Plot T-P
+width = 6
 fig = plt.figure(figsize=(width, width/1.6*0.5))
 ax = fig.add_subplot(1,1,1)
 ln_P = ln_rho['g']+ln_T['g']
@@ -256,13 +260,14 @@ ax.set_ylabel(r'$\ln T$')
 ax.set_xlabel(r'$\ln P$')
 ax.legend(frameon=False)
 plt.tight_layout()
-fig.savefig('atmosphere_a{}_b{}_eps{}_part2.pdf'.format(a,b,ε))
+fig.savefig('atmosphere_eos.pdf')
 
 error = domain.new_field()
 error.set_scales(domain.dealias)
 error['g'] = (ln_T['g']-ln_T_analytic)**2
 print("L2 norm between calculated and analytic solution {:g} (F={:g})".format(np.sqrt(error.integrate('z')['g'][0]),F))
 
+# Plot optical depth
 fig = plt.figure()
 ax = fig.add_subplot(2,1,1)
 ax.plot(z, tau['g'], label='τ')
@@ -292,7 +297,9 @@ one_over_m.set_scales(domain.dealias, keep_data=True)
 ax2.plot(ln_rho['g']+ln_T['g'], one_over_m['g'])
 ax2.axhline(y=1/m, linestyle='dashed', color='black')
 ax2.set_ylabel('1/m')
+plt.savefig('atmosphere_optical_depth.pdf')
 
+# Save structure
 use_evaluator = False
 if use_evaluator:
     atmosphere = solver.evaluator.add_file_handler('./atm')
@@ -315,5 +322,3 @@ atmosphere_file['brunt_squared'] = brunt2['g']
 atmosphere_file['c_s_squared'] = Cs['g']**2
 atmosphere_file['ω_ac_squared'] = ω_ac2['g']
 atmosphere_file.close()
-
-plt.show()
