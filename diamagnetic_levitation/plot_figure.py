@@ -50,5 +50,5 @@ for i in range(3):
         plot_axes[i].axis([-4,12,-3.9,1.4])
         plot_axes[i].axis('off')
 
-plt.savefig('fig_maglev.pdf')
+plt.savefig('fig_mag_lev.pdf')
 
