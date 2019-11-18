@@ -8,7 +8,10 @@ It should take approximately 3 seconds on 1 Skylake core.
 import matplotlib.pyplot as plt
 import numpy as np
 import h5py
+plt.style.use('./methods_paper.mplstyle')
 
+
+# Load data
 with h5py.File('wave_frequencies.h5','r') as infile:
     freqs = []
     eigs_w = []
@@ -36,142 +39,133 @@ with h5py.File('wave_frequencies.h5','r') as infile:
     N = len(freqs)
     print("Read {}-frequency sets".format(N))
 
-ω_upper = np.array(ω_plus_min)/brunt
-ω_lower = np.array(ω_minus_max)/brunt
+# Normalize frequencies
+ω_upper = np.array(ω_plus_min) / brunt
+ω_lower = np.array(ω_minus_max) / brunt
 
-#ks /= k_Hρ
+# Pick kx for mode plotting
 target_k = 17.5
-i_k = np.argmin(np.abs(ks-target_k))
-print(ω_upper)
-print(ω_lower)
+i_k = np.argmin(np.abs(ks - target_k))
 pad = 1.05
 
-c_acoustic = 'lightskyblue'
-c_gravity = 'firebrick'
-c_f_mode = 'darkslategrey'
-fig, ax = plt.subplots(nrows=2, ncols=1, sharex=True)
+# Frequency parameters
+c_acoustic = 'C0'
+c_gravity = 'C3'
+c_f_mode = 'k'
+marker = 'x'
+ms = 3
+mew = 0.5
+freq_props = dict(marker=marker, ms=ms, mew=mew, linestyle='none', zorder=2)
 
+# Figures
+fig, ax = plt.subplots(nrows=2, sharex=True, figsize=(3.4, 2.8))
+fig_eig, ax_eig = plt.subplots(nrows=2, sharex=True, figsize=(3.4, 2.8))
+
+# Loop over kx
 for i, k1 in enumerate(ks):
+
+    # Compute frequencies
     ω = freqs[i].real/brunt
     i_sort = np.argsort(ω)
     ω = ω[i_sort]
-    P = 1/ω
-
+    P = 1 / ω
     k = np.array([k1]*len(ω))
 
-    gwaves = np.where(np.abs(ω) <= ω_lower[i]*pad)
-    f_mode = np.where(np.logical_and(np.abs(ω) <= ω_upper[i], np.abs(ω) > ω_lower[i])*pad)
-    acoustic = np.where(np.abs(ω) > ω_upper[i])
+    gwaves = (np.abs(ω) <= ω_lower[i]*pad) * (np.abs(ω) > 0)
+    f_mode = (np.abs(ω) <= ω_upper[i]) * (np.abs(ω) > ω_lower[i]*pad)
+    acoustic = (np.abs(ω) > ω_upper[i])
 
-    ax[0].plot(k[acoustic], np.abs(ω[acoustic]), marker='x', linestyle='none', color=c_acoustic, zorder=2)
-    ax[0].plot(k[f_mode], np.abs(ω[f_mode]), marker='x', linestyle='none', color=c_f_mode, zorder=2)
-    ax[0].plot(k[gwaves], np.abs(ω[gwaves]), marker='x', linestyle='none', color=c_gravity, zorder=2)
+    # Plot frequencies
+    ax[0].plot(k[acoustic], np.abs(ω[acoustic]), color=c_acoustic, **freq_props)
+    ax[0].plot(k[f_mode], np.abs(ω[f_mode]), color=c_f_mode, **freq_props)
+    ax[0].plot(k[gwaves], np.abs(ω[gwaves]), color=c_gravity, **freq_props)
     if i == 0:
-        ax[1].plot(k[gwaves], np.abs(1/ω[gwaves]), marker='x', linestyle='none', color=c_gravity, zorder=2, label='gw')
-        ax[1].plot(k[f_mode], np.abs(1/ω[f_mode]), marker='x', linestyle='none', color=c_f_mode, zorder=2, label='f')
-        ax[1].plot(k[acoustic], np.abs(1/ω[acoustic]), marker='x', linestyle='none', color=c_acoustic, zorder=2, label='ac')
+        ax[1].plot(k[gwaves], np.abs(1/ω[gwaves]), color=c_gravity, label='gw', **freq_props)
+        ax[1].plot(k[f_mode], np.abs(1/ω[f_mode]), color=c_f_mode, label='f', **freq_props)
+        ax[1].plot(k[acoustic], np.abs(1/ω[acoustic]), color=c_acoustic, label='ac', **freq_props)
     else:
-        ax[1].plot(k[acoustic], np.abs(1/ω[acoustic]), marker='x', linestyle='none', color=c_acoustic, zorder=2)
-        ax[1].plot(k[f_mode], np.abs(1/ω[f_mode]), marker='x', linestyle='none', color=c_f_mode, zorder=2)
-        ax[1].plot(k[gwaves], np.abs(1/ω[gwaves]), marker='x', linestyle='none', color=c_gravity, zorder=2)
+        ax[1].plot(k[acoustic], np.abs(1/ω[acoustic]), color=c_acoustic,**freq_props)
+        ax[1].plot(k[f_mode], np.abs(1/ω[f_mode]), color=c_f_mode, **freq_props)
+        ax[1].plot(k[gwaves], np.abs(1/ω[gwaves]), color=c_gravity, **freq_props)
+
+    # Plot eigenfunctions
     if i == i_k:
         print('Eigenfunctions for kx = {:g} ({:g} '.format(k1*k_Hρ, k1)+r'$k_{H\rho}$)')
-        fig_eig, ax_eig = plt.subplots(nrows=2, sharex=True)
-        for axR in ax_eig:
-            axR.set_ylabel(r'$\sqrt{\rho}w,\,\sqrt{\rho}u, \sqrt{\rho}T$')
 
+        # Pick modes
         i_brunt = np.argmin(np.abs(P-1/ω_lower[i]*pad))
         w = eigs_w[i][i_sort,:]
-        u = eigs_u[i][i_sort,:]
-        T = eigs_T[i][i_sort,:]
-        gw = -4
-        ac = 5
-        weight = np.sqrt(rho0)
-        wc = 'steelblue'
-        ax_eig[1].plot(z, weight*w[i_brunt+gw,:].real, color=wc)
-        ax_eig[0].plot(z, weight*w[i_brunt+ac,:].real, color=wc, label=r'$\sqrt{\rho}w$')
-        ax_eig[1].plot(z, weight*w[i_brunt+gw,:].imag, linestyle='dashed', color=wc)
-        ax_eig[0].plot(z, weight*w[i_brunt+ac,:].imag, linestyle='dashed', color=wc)
-
-        uc = 'seagreen'
-        ax_eig[1].plot(z, weight*u[i_brunt+gw,:].real, color=uc)
-        ax_eig[0].plot(z, weight*u[i_brunt+ac,:].real, color=uc, label=r'$\sqrt{\rho}u$')
-        ax_eig[1].plot(z, weight*u[i_brunt+gw,:].imag, linestyle='dashed', color=uc)
-        ax_eig[0].plot(z, weight*u[i_brunt+ac,:].imag, linestyle='dashed', color=uc)
-
-        Tc = 'firebrick'
-        ax_eig[1].plot(z, weight*T[i_brunt+gw,:].real, color=Tc)
-        ax_eig[0].plot(z, weight*T[i_brunt+ac,:].real, color=Tc, label=r'$\sqrt{\rho}T$')
-        ax_eig[1].plot(z, weight*T[i_brunt+gw,:].imag, linestyle='dashed', color=Tc)
-        ax_eig[0].plot(z, weight*T[i_brunt+ac,:].imag, linestyle='dashed', color=Tc)
-
-        ax_eig[1].text(0, 0.5, 'gravity waves\n'+r'($\omega \leq \omega_-$)', verticalalignment='center', multialignment='center')
-        ax_eig[0].text(0, 0.5, 'acoustic waves\n'+r'($\omega > \omega_+$)', verticalalignment='center', multialignment='center')
-
-        legend = ax_eig[0].legend(frameon=False, loc='lower left')
-        for line,text in zip(legend.get_lines(), legend.get_texts()):
-            text.set_color(line.get_color())
-        ax_eig[1].set_xlabel(r'height $z$')
-        plt.tight_layout()
-        plt.subplots_adjust(hspace=0.05)
-
-        print("gw {:g}, {:g}".format(ω[i_brunt+gw], 1/ω[i_brunt+gw]))
-        print("ac {:g}, {:g}".format(ω[i_brunt+ac], 1/ω[i_brunt+ac]))
-
-        fig_eig, ax_eig = plt.subplots(nrows=2, sharex=True)
-        for axR in ax_eig:
-            axR.set_ylabel(r'$\sqrt{\rho}w$')
-            axR.axhline(y=0, color='black', linestyle='dashed')
-
         gws = [0, -2, -4, -8]
         acs = [1, 3, 5, 9]
         weight = np.sqrt(rho0)
 
-        colors = ['firebrick', 'darkorange', 'seagreen', 'darkslateblue']
-        i_color = 0
+        # Mode properties
+        colors = ['C1', 'C2', 'C4', 'C5']
+        marker = 'o'
+        msc = 4
+        mec = "none"
         print("   ω/N, N/ω")
-        for gw, ac in zip(gws,acs):
-            ax_eig[0].plot(z, weight*w[i_brunt+ac,:].real, color=colors[i_color], label='{:3.1f}'.format(ω[i_brunt+ac]))
-            ax_eig[1].plot(z, weight*w[i_brunt+gw,:].real, color=colors[i_color], label='{:3.1f}'.format(1/ω[i_brunt+gw]))
+        mode_props = dict(marker=marker, mec=mec, markersize=msc, alpha=0.5, zorder=3)
 
-            ax[0].plot(k[0], ω[i_brunt+gw], marker='o', color=colors[i_color], alpha=0.5, markersize=10, zorder=3)
-            ax[0].plot(k[0], ω[i_brunt+ac], marker='o', color=colors[i_color], alpha=0.5, markersize=10, zorder=3)
-            ax[1].plot(k[0], P[i_brunt+gw], marker='o', color=colors[i_color], alpha=0.5, markersize=10, zorder=3)
-            ax[1].plot(k[0], P[i_brunt+ac], marker='o', color=colors[i_color], alpha=0.5, markersize=10, zorder=3)
-            print("gw {:3.1f}, {:3.1f}".format(ω[i_brunt+gw], 1/ω[i_brunt+gw]))
-            print("ac {:3.1f}, {:3.1f}".format(ω[i_brunt+ac], 1/ω[i_brunt+ac]))
-            i_color += 1
+        for i, (gw, ac) in enumerate(zip(gws,acs)):
+            igw = i_brunt + gw
+            iac = i_brunt + ac
+            print("gw {:3.1f}, {:3.1f}".format(ω[igw], 1/ω[igw]))
+            print("ac {:3.1f}, {:3.1f}".format(ω[iac], 1/ω[iac]))
+            # Plot modes
+            ax_eig[0].plot(z, weight*w[iac,:].real, color=colors[i], label='{:3.1f}'.format(ω[iac]))
+            ax_eig[1].plot(z, weight*w[igw,:].real, color=colors[i], label='{:3.1f}'.format(1/ω[igw]))
+            # Highlight frequencies
+            mode_props['color'] = colors[i]
+            ax[0].plot(k[0], ω[igw], **mode_props)
+            ax[0].plot(k[0], ω[iac], **mode_props)
+            ax[1].plot(k[0], P[igw], **mode_props)
+            ax[1].plot(k[0], P[iac], **mode_props)
 
-        legend = ax_eig[1].legend(frameon=False, title=r'period $N/\omega$', loc='lower left', ncol=4)
-        for line,text in zip(legend.get_lines(), legend.get_texts()):
-            text.set_color(line.get_color())
-        legend = ax_eig[0].legend(frameon=False, title=r'frequency $\omega/N$', loc='lower left', ncol=4)
-        for line,text in zip(legend.get_lines(), legend.get_texts()):
-            text.set_color(line.get_color())
-        ax_eig[1].text(0, 0.5, 'gravity waves\n'+r'($\omega \leq \omega_-$)', verticalalignment='center', multialignment='center')
-        ax_eig[0].text(0, 0.5, 'acoustic waves\n'+r'($\omega > \omega_+$)', verticalalignment='center', multialignment='center')
-        ax_eig[1].set_xlabel(r'height $z$')
+# Frequency lines
+line_props = {'ls': 'solid', 'lw': 1, 'alpha': 0.5, 'zorder': 1}
+ax[0].plot(ks, ω_lower, color=c_gravity, **line_props)
+ax[0].plot(ks, ω_upper, color=c_acoustic, **line_props)
+#ax[0].axhline(y=1, color='black', **line_props)
+ax[1].plot(ks, 1/ω_lower, color=c_gravity, label=r'$\omega_-$', **line_props)
+#ax[1].axhline(y=1, color='black', label=r'$N$', **line_props)
+ax[1].plot(ks, 1/ω_upper, color=c_acoustic, label=r'$\omega_+$', **line_props)
 
-ax[0].plot(ks, ω_lower, color=c_gravity, linestyle='dashed', zorder=1)
-ax[0].plot(ks, ω_upper, color=c_acoustic, linestyle='dashed', zorder=1)
-ax[0].axhline(y=1, linestyle='dashed', color='black', zorder=1)
+ax_eig[0].axhline(y=0, color='black', linestyle='dashed')
+ax_eig[1].axhline(y=0, color='black', linestyle='dashed')
+
+# Labels
 ax[0].set_ylabel(r'frequency $\omega/N$')
-ax[0].set_ylim(0,5)
+ax[0].set_ylim(0, 5)
 ax[0].set_xscale('log')
-
-ax[1].plot(ks, 1/ω_lower, color=c_gravity, linestyle='dashed', label=r'$\omega_-$', zorder=1)
-ax[1].axhline(y=1, linestyle='dashed', color='black', label=r'$N$', zorder=1)
-ax[1].plot(ks, 1/ω_upper, color=c_acoustic, linestyle='dashed', label=r'$\omega_+$', zorder=1)
 ax[1].set_xlabel(r'wavenumber $k_x$')
 ax[1].set_ylabel(r'period $N/\omega$')
-ax[1].set_ylim(0,5.1)
+ax[1].set_ylim(0, 5)
 ax[1].set_xscale('log')
-legend = ax[1].legend(ncol=2, framealpha=0.7)
+
+ax_eig[0].set_ylabel(r'$\sqrt{\rho}w$')
+ax_eig[1].set_ylabel(r'$\sqrt{\rho}w$')
+ax_eig[1].text(0, 0.65, 'gravity waves\n'+r'($\omega \leq \omega_-$)', verticalalignment='center', multialignment='center', fontsize=8)
+ax_eig[0].text(0, 0.65, 'acoustic waves\n'+r'($\omega > \omega_+$)', verticalalignment='center', multialignment='center', fontsize=8)
+ax_eig[1].set_xlabel(r'height $z$')
+ax_eig[0].set_ylim(-1.3, 1.3)
+ax_eig[1].set_ylim(-1.3, 1.3)
+
+# Legends
+legend = ax[1].legend(ncol=2, frameon=False, fontsize=6)
 legend.get_frame().set_linewidth(0.0)
 
-plt.tight_layout()
-plt.subplots_adjust(hspace=0.05)
+legend = ax_eig[1].legend(frameon=False, title=r'period $N/\omega$', loc='lower left', ncol=2, fontsize=6)
+plt.setp(legend.get_title(),fontsize=8)
+for line,text in zip(legend.get_lines(), legend.get_texts()):
+    text.set_color(line.get_color())
+legend = ax_eig[0].legend(frameon=False, title=r'frequency $\omega/N$', loc='lower left', ncol=2, fontsize=6)
+plt.setp(legend.get_title(),fontsize=8)
+for line,text in zip(legend.get_lines(), legend.get_texts()):
+    text.set_color(line.get_color())
 
+# Save
+fig.tight_layout(pad=0.5)
+fig_eig.tight_layout(pad=0.5)
 fig.savefig('wave_frequency_spectrum.pdf')
 fig_eig.savefig('wave_eigenfunctions.pdf')
-plt.show()
