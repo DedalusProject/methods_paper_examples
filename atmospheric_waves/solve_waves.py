@@ -20,8 +20,8 @@ matplotlib_logger.setLevel(logging.WARNING)
 
 
 # Parameters
-nz_waves = 384
-ncc_cutoff = 1e-6
+nz_waves = 256
+ncc_cutoff = 1e-9
 
 cw_size = MPI.COMM_WORLD.size
 cw_rank = MPI.COMM_WORLD.rank
@@ -41,7 +41,7 @@ atmosphere_file.close()
 
 # Problem
 gamma = 5/3
-z_basis = de.Chebyshev('z', nz_waves, interval=(0, Lz), tau_after_pre=True)
+z_basis = de.Legendre('z', nz_waves, interval=(0, Lz), tau_after_pre=False)
 domain_EVP = de.Domain([z_basis], comm=MPI.COMM_SELF)
 waves = de.EVP(domain_EVP, ['u','w','T1','ln_rho1', 'w_z'], eigenvalue='omega', ncc_cutoff=ncc_cutoff)
 n_var = 5
