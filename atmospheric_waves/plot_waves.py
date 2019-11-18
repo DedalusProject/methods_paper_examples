@@ -167,5 +167,5 @@ for line,text in zip(legend.get_lines(), legend.get_texts()):
 # Save
 fig.tight_layout(pad=0.5)
 fig_eig.tight_layout(pad=0.5)
-fig.savefig('wave_frequency_spectrum.pdf')
-fig_eig.savefig('wave_eigenfunctions.pdf')
+fig.savefig('fig_waves_spectrum.pdf')
+fig_eig.savefig('fig_waves_eigenfunctions.pdf')
