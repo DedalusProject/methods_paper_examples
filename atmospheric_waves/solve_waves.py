@@ -20,7 +20,8 @@ matplotlib_logger.setLevel(logging.WARNING)
 
 
 # Parameters
-nz_waves = 192
+nz_waves = 384
+ncc_cutoff = 1e-6
 
 cw_size = MPI.COMM_WORLD.size
 cw_rank = MPI.COMM_WORLD.rank
@@ -40,9 +41,9 @@ atmosphere_file.close()
 
 # Problem
 gamma = 5/3
-z_basis = de.Legendre('z', nz_waves, interval=(0, Lz))
+z_basis = de.Chebyshev('z', nz_waves, interval=(0, Lz), tau_after_pre=True)
 domain_EVP = de.Domain([z_basis], comm=MPI.COMM_SELF)
-waves = de.EVP(domain_EVP, ['u','w','T1','ln_rho1', 'w_z'], eigenvalue='omega')
+waves = de.EVP(domain_EVP, ['u','w','T1','ln_rho1', 'w_z'], eigenvalue='omega', ncc_cutoff=ncc_cutoff)
 n_var = 5
 T0 = domain_EVP.new_field()
 T0_z = domain_EVP.new_field()
@@ -96,8 +97,8 @@ waves.add_bc('right(w) = 0')
 
 # value at top of atmosphere in isothermal layer
 brunt_max = np.max(np.sqrt(np.abs(brunt2))) # max value in atmosphere
-k_Hρ = -1/2*del_ln_rho0['g'][0].real
-c_s = np.sqrt(T0['g'][0].real)
+k_Hρ = -1/2*del_ln_rho0.interpolate(z=0)['g'][0].real
+c_s = np.sqrt(T0.interpolate(z=0)['g'][0].real)
 
 logger.info("max Brunt is |N| = {} and  k_Hρ is {}".format(brunt_max, k_Hρ))
 start_time = time.time()

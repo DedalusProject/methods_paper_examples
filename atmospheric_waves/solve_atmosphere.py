@@ -26,11 +26,11 @@ plt.style.use('./methods_paper.mplstyle')
 comm = MPI.COMM_WORLD
 
 # Parameters
-ncc_cutoff = 1e-8
-tolerance = 1e-8
+ncc_cutoff = 1e-6
+tolerance = 1e-9
 a = 1
 b = 0
-nz = 128
+nz = 384
 IC = 'isothermal' #'polytrope'
 F = 1e-5 # set to zero for analytic atmosphere comparison
 
@@ -74,7 +74,7 @@ F_over_cE_BB14 = 1/4*(np.array([26600, 16300,9300,5200])/38968)**4
 Q_BB14 = tau_0_BB14*F_over_cE_BB14
 
 # Domain
-z_basis = de.Legendre('z', nz, interval=(0,Lz), dealias=2)
+z_basis = de.Chebyshev('z', nz, interval=(0,Lz), dealias=2, tau_after_pre=True)
 domain = de.Domain([z_basis], np.float64, comm=MPI.COMM_SELF)
 
 # Problem
