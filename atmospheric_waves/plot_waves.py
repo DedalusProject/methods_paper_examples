@@ -60,6 +60,8 @@ freq_props = dict(marker=marker, ms=ms, mew=mew, linestyle='none', zorder=2)
 # Figures
 fig, ax = plt.subplots(nrows=2, sharex=True, figsize=(3.4, 2.8))
 fig_eig, ax_eig = plt.subplots(nrows=2, sharex=True, figsize=(3.4, 2.8))
+fig.subplots_adjust(left=0.11, bottom=0.12, right=0.97, top=0.97, hspace=0.06)
+fig_eig.subplots_adjust(left=0.11, bottom=0.12, right=0.97, top=0.97, hspace=0.06)
 
 # Loop over kx
 for i, k1 in enumerate(ks):
@@ -136,12 +138,15 @@ ax_eig[1].axhline(y=0, color='black', linestyle='dashed')
 
 # Labels
 ax[0].set_ylabel(r'frequency $\omega/N$')
-ax[0].set_ylim(0, 5)
+ax[0].set_ylim(0, 5.2)
 ax[0].set_xscale('log')
 ax[1].set_xlabel(r'wavenumber $k_x$')
 ax[1].set_ylabel(r'period $N/\omega$')
-ax[1].set_ylim(0, 5)
+ax[1].set_ylim(0, 5.2)
 ax[1].set_xscale('log')
+ax[1].xaxis.set_label_coords(0.5, -0.15)
+ax[0].yaxis.set_label_coords(-0.06, 0.5)
+ax[1].yaxis.set_label_coords(-0.06, 0.5)
 
 ax_eig[0].set_ylabel(r'$\sqrt{\rho}w$')
 ax_eig[1].set_ylabel(r'$\sqrt{\rho}w$')
@@ -150,6 +155,9 @@ ax_eig[0].text(0, 0.65, 'acoustic waves\n'+r'($\omega > \omega_+$)', verticalali
 ax_eig[1].set_xlabel(r'height $z$')
 ax_eig[0].set_ylim(-1.3, 1.3)
 ax_eig[1].set_ylim(-1.3, 1.3)
+ax_eig[1].xaxis.set_label_coords(0.5, -0.15)
+ax_eig[0].yaxis.set_label_coords(-0.06, 0.5)
+ax_eig[1].yaxis.set_label_coords(-0.06, 0.5)
 
 # Legends
 legend = ax[1].legend(ncol=2, frameon=False, fontsize=6)
@@ -165,7 +173,10 @@ for line,text in zip(legend.get_lines(), legend.get_texts()):
     text.set_color(line.get_color())
 
 # Save
-fig.tight_layout(pad=0.5)
-fig_eig.tight_layout(pad=0.5)
+ax[0].text(-0.06, 1.0, "(a)", transform=ax[0].transAxes, fontsize=8, va='top', ha='right')
+ax[1].text(-0.06, 1.0, "(b)", transform=ax[1].transAxes, fontsize=8, va='top', ha='right')
+ax_eig[0].text(-0.06, 1.0, "(a)", transform=ax_eig[0].transAxes, fontsize=8, va='top', ha='right')
+ax_eig[1].text(-0.06, 1.0, "(b)", transform=ax_eig[1].transAxes, fontsize=8, va='top', ha='right')
+
 fig.savefig('fig_waves_spectrum.pdf')
 fig_eig.savefig('fig_waves_eigenfunctions.pdf')

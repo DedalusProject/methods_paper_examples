@@ -126,7 +126,7 @@ font.weight         : normal
 # settings for axes and ticks. Special text sizes can be defined
 # relative to font.size, using the following values: xx-small, x-small,
 # small, medium, large, x-large, xx-large, larger, or smaller
-#font.size           : 12.0
+font.size           : 8
 font.serif          : Times New Roman #Bitstream Vera Serif, New Century Schoolbook, Century Schoolbook L, Utopia, ITC Bookman, Bookman, Nimbus Roman No9 L, Times New Roman, Times, Palatino, Charter, serif
 #font.serif : Times New Roman
 #font.sans-serif     : Roboto
@@ -211,7 +211,7 @@ axes.linewidth      : 1.0     # edge linewidth
 #axes.grid           : False   # display grid or not
 axes.titlesize      : 10   # fontsize of the axes title
 axes.titleweight    : normal
-axes.labelsize      : 10  # fontsize of the x any y labels
+axes.labelsize      : 8  # fontsize of the x any y labels
 axes.labelweight    : normal  # weight of the x and y labels
 #axes.labelcolor     : black
 #axes.axisbelow      : False   # whether axis gridlines and ticks are below
@@ -244,7 +244,7 @@ xtick.minor.width    : 1    # minor tick width in points
 #xtick.major.pad      : 4      # distance to major tick label in points
 #xtick.minor.pad      : 4      # distance to the minor tick label in points
 #xtick.color          : k      # color of the tick labels
-xtick.labelsize      : medium # fontsize of the tick labels
+xtick.labelsize      : 8 # fontsize of the tick labels
 xtick.direction      : in     # direction: in or out
 
 ytick.major.size     : 2      # major tick size in points
@@ -254,7 +254,7 @@ ytick.minor.width    : 1    # minor tick width in points
 #ytick.major.pad      : 4      # distance to major tick label in points
 #ytick.minor.pad      : 4      # distance to the minor tick label in points
 #ytick.color          : k      # color of the tick labels
-ytick.labelsize      : medium # fontsize of the tick labels
+ytick.labelsize      : 8 # fontsize of the tick labels
 ytick.direction      : in     # direction: in or out
 
 
@@ -268,7 +268,7 @@ ytick.direction      : in     # direction: in or out
                                # legend, else a rectangle
 #legend.isaxes        : True
 #legend.numpoints     : 2      # the number of points in the legend line
-legend.fontsize      : medium
+legend.fontsize      : 6
 #legend.pad           : 0.0    # deprecated; the fractional whitespace inside the legend border
 #legend.borderpad     : 0.5    # border whitespace in fontsize units
 #legend.markerscale   : 1.0    # the relative size of legend markers vs. original
