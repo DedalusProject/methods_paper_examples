@@ -136,8 +136,8 @@ ax[1].plot(ks, 1/ω_lower, color=c_gravity, label=r'$\omega_-$', **line_props)
 #ax[1].axhline(y=1, color='black', label=r'$N$', **line_props)
 ax[1].plot(ks, 1/ω_upper, color=c_acoustic, label=r'$\omega_+$', **line_props)
 
-ax_eig[0].axhline(y=0, color='black', linestyle='dashed')
-ax_eig[1].axhline(y=0, color='black', linestyle='dashed')
+ax_eig[0].axhline(y=0, color='black', linestyle='dashed', zorder=1)
+ax_eig[1].axhline(y=0, color='black', linestyle='dashed', zorder=1)
 
 # Labels
 ax[0].set_ylabel(r'frequency $\omega/N$')
@@ -166,11 +166,11 @@ ax_eig[1].yaxis.set_label_coords(-0.06, 0.5)
 legend = ax[1].legend(ncol=2, loc='upper left', frameon=False, fontsize=7, handlelength=1.5)
 legend.get_frame().set_linewidth(0.0)
 
-legend = ax_eig[1].legend(frameon=False, title=r'period $N/\omega$', loc='lower left', ncol=2, fontsize=7)
+legend = ax_eig[1].legend(frameon=False, title=r'period $N/\omega$', loc='lower left', ncol=2, fontsize=7, handlelength=1.5)
 plt.setp(legend.get_title(),fontsize=9)
 for line,text in zip(legend.get_lines(), legend.get_texts()):
     text.set_color(line.get_color())
-legend = ax_eig[0].legend(frameon=False, title=r'frequency $\omega/N$', loc='lower left', ncol=2, fontsize=7)
+legend = ax_eig[0].legend(frameon=False, title=r'frequency $\omega/N$', loc='lower left', ncol=2, fontsize=7, handlelength=1.5)
 plt.setp(legend.get_title(),fontsize=9)
 for line,text in zip(legend.get_lines(), legend.get_texts()):
     text.set_color(line.get_color())
