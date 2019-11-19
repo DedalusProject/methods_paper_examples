@@ -60,8 +60,8 @@ freq_props = dict(marker=marker, ms=ms, mew=mew, linestyle='none', zorder=2)
 # Figures
 fig, ax = plt.subplots(nrows=2, sharex=True, figsize=(3.4, 2.8))
 fig_eig, ax_eig = plt.subplots(nrows=2, sharex=True, figsize=(3.4, 2.8))
-fig.subplots_adjust(left=0.11, bottom=0.12, right=0.97, top=0.97, hspace=0.06)
-fig_eig.subplots_adjust(left=0.11, bottom=0.12, right=0.97, top=0.97, hspace=0.06)
+fig.subplots_adjust(left=0.12, bottom=0.12, right=0.97, top=0.97, hspace=0.06)
+fig_eig.subplots_adjust(left=0.12, bottom=0.12, right=0.97, top=0.97, hspace=0.06)
 
 # Loop over kx
 for i, k1 in enumerate(ks):
@@ -78,14 +78,17 @@ for i, k1 in enumerate(ks):
     acoustic = (np.abs(ω) > ω_upper[i])
 
     # Plot frequencies
-    ax[0].plot(k[acoustic], np.abs(ω[acoustic]), color=c_acoustic, **freq_props)
-    ax[0].plot(k[f_mode], np.abs(ω[f_mode]), color=c_f_mode, **freq_props)
-    ax[0].plot(k[gwaves], np.abs(ω[gwaves]), color=c_gravity, **freq_props)
     if i == 0:
+        ax[0].plot(k[acoustic], np.abs(ω[acoustic]), color=c_acoustic, label='ac', **freq_props)
+        ax[0].plot(k[f_mode], np.abs(ω[f_mode]), color=c_f_mode, label='f', **freq_props)
+        ax[0].plot(k[gwaves], np.abs(ω[gwaves]), color=c_gravity, label='ac', **freq_props)
         ax[1].plot(k[gwaves], np.abs(1/ω[gwaves]), color=c_gravity, label='gw', **freq_props)
         ax[1].plot(k[f_mode], np.abs(1/ω[f_mode]), color=c_f_mode, label='f', **freq_props)
         ax[1].plot(k[acoustic], np.abs(1/ω[acoustic]), color=c_acoustic, label='ac', **freq_props)
     else:
+        ax[0].plot(k[acoustic], np.abs(ω[acoustic]), color=c_acoustic, **freq_props)
+        ax[0].plot(k[f_mode], np.abs(ω[f_mode]), color=c_f_mode, **freq_props)
+        ax[0].plot(k[gwaves], np.abs(ω[gwaves]), color=c_gravity, **freq_props)
         ax[1].plot(k[acoustic], np.abs(1/ω[acoustic]), color=c_acoustic,**freq_props)
         ax[1].plot(k[f_mode], np.abs(1/ω[f_mode]), color=c_f_mode, **freq_props)
         ax[1].plot(k[gwaves], np.abs(1/ω[gwaves]), color=c_gravity, **freq_props)
@@ -104,7 +107,7 @@ for i, k1 in enumerate(ks):
         # Mode properties
         colors = ['C1', 'C2', 'C4', 'C5']
         marker = 'o'
-        msc = 4
+        msc = 6
         mec = "none"
         print("   ω/N, N/ω")
         mode_props = dict(marker=marker, mec=mec, markersize=msc, alpha=0.5, zorder=3)
@@ -126,8 +129,8 @@ for i, k1 in enumerate(ks):
 
 # Frequency lines
 line_props = {'ls': 'solid', 'lw': 1, 'alpha': 0.5, 'zorder': 1}
-ax[0].plot(ks, ω_lower, color=c_gravity, **line_props)
-ax[0].plot(ks, ω_upper, color=c_acoustic, **line_props)
+ax[0].plot(ks, ω_lower, color=c_gravity, label=r'$\omega_-$', **line_props)
+ax[0].plot(ks, ω_upper, color=c_acoustic, label=r'$\omega_+$', **line_props)
 #ax[0].axhline(y=1, color='black', **line_props)
 ax[1].plot(ks, 1/ω_lower, color=c_gravity, label=r'$\omega_-$', **line_props)
 #ax[1].axhline(y=1, color='black', label=r'$N$', **line_props)
@@ -150,8 +153,8 @@ ax[1].yaxis.set_label_coords(-0.06, 0.5)
 
 ax_eig[0].set_ylabel(r'$\sqrt{\rho}w$')
 ax_eig[1].set_ylabel(r'$\sqrt{\rho}w$')
-ax_eig[1].text(0, 0.65, 'gravity waves\n'+r'($\omega \leq \omega_-$)', verticalalignment='center', multialignment='center', fontsize=8)
-ax_eig[0].text(0, 0.65, 'acoustic waves\n'+r'($\omega > \omega_+$)', verticalalignment='center', multialignment='center', fontsize=8)
+ax_eig[1].text(0, 0.65, 'gravity waves\n'+r'($\omega \leq \omega_-$)', verticalalignment='center', multialignment='center', fontsize=9)
+ax_eig[0].text(0, 0.65, 'acoustic waves\n'+r'($\omega > \omega_+$)', verticalalignment='center', multialignment='center', fontsize=9)
 ax_eig[1].set_xlabel(r'height $z$')
 ax_eig[0].set_ylim(-1.3, 1.3)
 ax_eig[1].set_ylim(-1.3, 1.3)
@@ -160,23 +163,23 @@ ax_eig[0].yaxis.set_label_coords(-0.06, 0.5)
 ax_eig[1].yaxis.set_label_coords(-0.06, 0.5)
 
 # Legends
-legend = ax[1].legend(ncol=2, frameon=False, fontsize=6)
+legend = ax[1].legend(ncol=2, loc='upper left', frameon=False, fontsize=7, handlelength=1.5)
 legend.get_frame().set_linewidth(0.0)
 
-legend = ax_eig[1].legend(frameon=False, title=r'period $N/\omega$', loc='lower left', ncol=2, fontsize=6)
-plt.setp(legend.get_title(),fontsize=8)
+legend = ax_eig[1].legend(frameon=False, title=r'period $N/\omega$', loc='lower left', ncol=2, fontsize=7)
+plt.setp(legend.get_title(),fontsize=9)
 for line,text in zip(legend.get_lines(), legend.get_texts()):
     text.set_color(line.get_color())
-legend = ax_eig[0].legend(frameon=False, title=r'frequency $\omega/N$', loc='lower left', ncol=2, fontsize=6)
-plt.setp(legend.get_title(),fontsize=8)
+legend = ax_eig[0].legend(frameon=False, title=r'frequency $\omega/N$', loc='lower left', ncol=2, fontsize=7)
+plt.setp(legend.get_title(),fontsize=9)
 for line,text in zip(legend.get_lines(), legend.get_texts()):
     text.set_color(line.get_color())
 
 # Save
-ax[0].text(-0.06, 1.0, "(a)", transform=ax[0].transAxes, fontsize=8, va='top', ha='right')
-ax[1].text(-0.06, 1.0, "(b)", transform=ax[1].transAxes, fontsize=8, va='top', ha='right')
-ax_eig[0].text(-0.06, 1.0, "(a)", transform=ax_eig[0].transAxes, fontsize=8, va='top', ha='right')
-ax_eig[1].text(-0.06, 1.0, "(b)", transform=ax_eig[1].transAxes, fontsize=8, va='top', ha='right')
+ax[0].text(-0.06, 1.0, "(a)", transform=ax[0].transAxes, fontsize=9, va='top', ha='right')
+ax[1].text(-0.06, 1.0, "(b)", transform=ax[1].transAxes, fontsize=9, va='top', ha='right')
+ax_eig[0].text(-0.06, 1.0, "(a)", transform=ax_eig[0].transAxes, fontsize=9, va='top', ha='right')
+ax_eig[1].text(-0.06, 1.0, "(b)", transform=ax_eig[1].transAxes, fontsize=9, va='top', ha='right')
 
 fig.savefig('fig_waves_spectrum.pdf')
 fig_eig.savefig('fig_waves_eigenfunctions.pdf')

@@ -50,14 +50,15 @@ for a in f['scales/x']: print(a)
 x = np.array(f['scales/x/4'])
 y = np.array(f['scales/y/4'])
 vort = np.array(f['tasks/vorticity-top'][0,:,:,0])
+b = np.array(f['tasks/buoyancy-top'][0,:,:,0])
 PV   = np.array(f['tasks/PV-top'][0,:,:,0])
 
 f.close()
 
 xm, ym = plot_tools.quad_mesh(x, y)
 
-data = [vort,PV]
-label = [r'$\omega$',r'$PV$']
+data = [b,PV]
+label = [r'$b$',r'$PV$']
 cmaps = ['RdBu_r','PuOr']
 
 c_im = []
@@ -66,7 +67,7 @@ for i in range(2):
   max = 0.8*np.max(np.abs(data[i]))
   c_im.append(slice_axes[i].pcolormesh(xm, ym, data[i].T, vmin=-max, vmax=max, cmap=cmaps[i]))
 
-  slice_axes[i].axis([-40,40,-20,20])
+  #slice_axes[i].axis([-40,40,-20,20])
   if i == 0:
     plt.setp(slice_axes[i].get_xticklabels(), visible=False)
     slice_axes[i].xaxis.set_major_locator(MaxNLocator(nbins=5))
@@ -75,7 +76,7 @@ for i in range(2):
     slice_axes[i].set_xlabel(r'$x$')
     slice_axes[i].xaxis.set_major_locator(MaxNLocator(nbins=5))
     slice_axes[i].yaxis.set_major_locator(MaxNLocator(nbins=5,prune='upper'))
-  
+
   slice_axes[i].set_ylabel(r'$y$')
 
   cbar.append(fig.colorbar(c_im[i], cax=cbar_axes[i], orientation='vertical', ticks=MaxNLocator(nbins=5)))
