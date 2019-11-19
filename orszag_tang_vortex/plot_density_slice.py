@@ -37,7 +37,7 @@ cax.set_title(r'$\rho$')
 slice_axis.set_aspect('equal')
 
 # Save
-plt.tight_layout(pad=0.2)
+plt.tight_layout(pad=0.5)
 plt.savefig('fig_OT_image.pdf', dpi=400)
 
 

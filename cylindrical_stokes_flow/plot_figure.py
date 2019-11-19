@@ -33,7 +33,7 @@ def draw_small_multiple(ax, theta, r, c1, c2, c3, time, phi, direction):
     c3_mod[c3[index]>1] = 1
     phi_in = phi[index,0,0]
     colors = tuple(np.array([c1_mod.T.flatten(),c2_mod.T.flatten(),c3_mod.T.flatten()]).transpose().tolist())
-    ax.set_title(r"$t = {:4.1f}$".format(time), fontsize=10, pad=0)
+    ax.set_title(r"$t = {:4.1f}$".format(time), fontsize=9, pad=0.2)
     ax.pcolormesh(theta, r, c1[0,:,:].T, color=colors, rasterized=True)
     ax.annotate(r"$\theta_{{\mathrm{{in}}}} = {:5.1f} \pi$".format(np.abs(phi_in/np.pi)), xytext=(0,0), xy=(0,0), ha='center', va='center', fontsize=9)
 

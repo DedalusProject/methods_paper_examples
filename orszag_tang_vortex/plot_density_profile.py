@@ -31,6 +31,6 @@ plot_axis_sub.set_xlim([0.69,0.71])
 plt.setp(plot_axis_sub.get_xticklabels(), fontsize=8)
 plt.setp(plot_axis_sub.get_yticklabels(), fontsize=8)
 
-plt.tight_layout(pad=0.2)
+plt.tight_layout(pad=0.5)
 plt.savefig('fig_OT_line.pdf')
 
