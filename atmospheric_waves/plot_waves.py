@@ -100,8 +100,8 @@ for i, k1 in enumerate(ks):
         # Pick modes
         i_brunt = np.argmin(np.abs(P-1/ω_lower[i]*pad))
         w = eigs_w[i][i_sort,:]
-        gws = [0, -2, -4, -8]
-        acs = [1, 3, 5, 9]
+        gws = [0, -2, -6]
+        acs = [2, 4, 8]
         weight = np.sqrt(rho0)
 
         # Mode properties
@@ -153,8 +153,8 @@ ax[1].yaxis.set_label_coords(-0.06, 0.5)
 
 ax_eig[0].set_ylabel(r'$\sqrt{\rho}w$')
 ax_eig[1].set_ylabel(r'$\sqrt{\rho}w$')
-ax_eig[1].text(0, 0.65, 'gravity waves\n'+r'($\omega \leq \omega_-$)', verticalalignment='center', multialignment='center', fontsize=9)
-ax_eig[0].text(0, 0.65, 'acoustic waves\n'+r'($\omega > \omega_+$)', verticalalignment='center', multialignment='center', fontsize=9)
+ax_eig[1].text(0.05, 0.65, 'gravity waves\n'+r'($\omega \leq \omega_-$)', verticalalignment='center', multialignment='center', fontsize=9)
+ax_eig[0].text(0.05, 0.65, 'acoustic waves\n'+r'($\omega > \omega_+$)', verticalalignment='center', multialignment='center', fontsize=9)
 ax_eig[1].set_xlabel(r'height $z$')
 ax_eig[0].set_ylim(-1.3, 1.3)
 ax_eig[1].set_ylim(-1.3, 1.3)
@@ -166,11 +166,11 @@ ax_eig[1].yaxis.set_label_coords(-0.06, 0.5)
 legend = ax[1].legend(ncol=2, loc='upper left', frameon=False, fontsize=7, handlelength=1.5)
 legend.get_frame().set_linewidth(0.0)
 
-legend = ax_eig[1].legend(frameon=False, title=r'period $N/\omega$', loc='lower left', ncol=2, fontsize=7, handlelength=1.5)
+legend = ax_eig[1].legend(frameon=False, title=r'period $N/\omega$', loc='lower left', ncol=3, fontsize=7, handlelength=1.5)
 plt.setp(legend.get_title(),fontsize=9)
 for line,text in zip(legend.get_lines(), legend.get_texts()):
     text.set_color(line.get_color())
-legend = ax_eig[0].legend(frameon=False, title=r'frequency $\omega/N$', loc='lower left', ncol=2, fontsize=7, handlelength=1.5)
+legend = ax_eig[0].legend(frameon=False, title=r'frequency $\omega/N$', loc='lower left', ncol=3, fontsize=7, handlelength=1.5)
 plt.setp(legend.get_title(),fontsize=9)
 for line,text in zip(legend.get_lines(), legend.get_texts()):
     text.set_color(line.get_color())
